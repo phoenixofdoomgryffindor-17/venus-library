@@ -1,16 +1,13 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import type { Book, Chapter } from '@/lib/types';
-import { CommandPalette } from '@/components/command/CommandPalette';
-import { handleKeyDown, registerShortcut } from '@/engine/shortcuts/ShortcutRegistry';
-import { registerFeature } from '@/engine/features/FeatureRegistry';
 import AuthorStudio from '@/components/author-studio';
 import '@/styles/editor-loader.css';
 
@@ -64,15 +61,6 @@ function EditorLoader({
   );
 }
 
-function CancelledScreen() {
-    const router = useRouter();
-    useEffect(() => {
-        router.back();
-    }, [router]);
-    return null;
-}
-
-
 export default function AuthorStudioPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const firestore = useFirestore();
@@ -83,8 +71,6 @@ export default function AuthorStudioPage() {
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [cancelled, setCancelled] = useState(false);
-  const [isCommandPaletteOpen, setCommandPaletteOpen] = useState(false);
-
 
   const bookRef = useMemoFirebase(
     () => (firestore && bookId ? doc(firestore, 'books', bookId) : null),
@@ -134,24 +120,6 @@ export default function AuthorStudioPage() {
     }
   }, [cancelled, loading, book, chapters]);
   
-  // --- Register Shortcuts & Features ---
-  useEffect(() => {
-    registerShortcut('Ctrl+K', () => setCommandPaletteOpen(true));
-    registerShortcut('Ctrl+B', () => console.log('Bold command triggered'));
-    registerShortcut('Ctrl+I', () => console.log('Italic command triggered'));
-    registerShortcut('Ctrl+S', () => console.log('Save command triggered'));
-
-    registerFeature({ id: 'core.bold', title: 'Bold', tab: 'home', action: () => console.log('Bold'), shortcut: 'Ctrl+B' });
-    registerFeature({ id: 'core.italic', title: 'Italic', tab: 'home', action: () => console.log('Italic'), shortcut: 'Ctrl+I' });
-    registerFeature({ id: 'ai.rewrite', title: 'Rewrite Selection', tab: 'ai', action: () => console.log('AI Rewrite') });
-
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, []);
-
   if (!loading && (!book || book.authorId !== user?.uid)) {
     notFound();
   }
@@ -169,16 +137,11 @@ export default function AuthorStudioPage() {
         />
       )}
 
-      {cancelled && <CancelledScreen />}
-
       {ready && !cancelled && book && chapters && (
-         <>
-            <CommandPalette open={isCommandPaletteOpen} setOpen={setCommandPaletteOpen} />
-            <AuthorStudio
-                book={book}
-                initialChapters={chapters}
-            />
-        </>
+         <AuthorStudio
+            book={book}
+            initialChapters={chapters}
+         />
       )}
     </>
   );

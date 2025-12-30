@@ -1,10 +1,9 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Book, Chapter } from '@/lib/types';
-import type { Block } from '@/engine/pagination/PageModel';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, ArrowLeft, Undo, Redo } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
@@ -22,7 +21,8 @@ import {
 import EditorToolbar from './editor-toolbar';
 import { Logo } from './icons';
 import { EditorCanvas } from './editor/EditorCanvas';
-import { rewriteChapterContent } from '@/ai/flows/rewrite-chapter-content';
+import { useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 
 interface AuthorStudioProps {
   book: Book;
@@ -30,9 +30,7 @@ interface AuthorStudioProps {
 }
 
 const createSlug = (title: string) => {
-  if (!title) {
-    return '';
-  }
+  if (!title) return '';
   return title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
@@ -41,10 +39,9 @@ const createSlug = (title: string) => {
     .trim();
 };
 
-const GlobalNav = ({ book, onExit }: { book: Book, onExit: () => void }) => {
+const GlobalNav = ({ book, onExit, saveStatus }: { book: Book, onExit: () => void, saveStatus: 'saved' | 'saving' | 'unsaved' }) => {
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [editableTitle, setEditableTitle] = useState(book.title);
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -52,7 +49,6 @@ const GlobalNav = ({ book, onExit }: { book: Book, onExit: () => void }) => {
     setIsTitleEditing(false);
     if (editableTitle === book.title) return;
     
-    setSaveStatus('saving');
     try {
         const bookRef = doc(firestore, 'books', book.id);
         await updateDoc(bookRef, {
@@ -60,10 +56,8 @@ const GlobalNav = ({ book, onExit }: { book: Book, onExit: () => void }) => {
             slug: createSlug(editableTitle),
             updatedAt: serverTimestamp(),
         });
-        setSaveStatus('saved');
         toast({ title: "Book title updated!" });
     } catch (e: any) {
-        setSaveStatus('unsaved');
         toast({ title: "Error Saving Title", description: e.message, variant: 'destructive' });
     }
   };
@@ -95,11 +89,6 @@ const GlobalNav = ({ book, onExit }: { book: Book, onExit: () => void }) => {
                     {editableTitle}
                 </div>
               )}
-              {/* This is the invisible slug component */}
-              <div className="invisible">
-                <label htmlFor="slug" className="text-xs text-muted-foreground">URL Slug</label>
-                <Input id="slug" readOnly value={createSlug(editableTitle)} className="h-7 w-48 text-xs bg-muted border-dashed"/>
-              </div>
         </div>
         <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -108,8 +97,8 @@ const GlobalNav = ({ book, onExit }: { book: Book, onExit: () => void }) => {
                 {saveStatus === 'unsaved' && <div className="h-2 w-2 rounded-full bg-primary" title="Unsaved changes"/>}
             </div>
              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" disabled><Undo/></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" disabled><Redo/></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().undo().run()} disabled={!editor?.can().undo()}><Undo/></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().redo().run()} disabled={!editor?.can().redo()}><Redo/></Button>
             </div>
             <Button variant="ghost" onClick={onExit}>
                 Exit Studio
@@ -119,46 +108,60 @@ const GlobalNav = ({ book, onExit }: { book: Book, onExit: () => void }) => {
   )
 }
 
-
 export default function AuthorStudio({ book, initialChapters }: AuthorStudioProps) {
   const router = useRouter();
   const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
   const [activeChapter, setActiveChapter] = useState<Chapter | null>(initialChapters[0] ?? null);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
 
-  // AI Feature States
-  const [aiIsLoading, setAiIsLoading] = useState<string | null>(null);
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: activeChapter?.content || '',
+    onUpdate: ({ editor }) => {
+      setSaveStatus('unsaved');
+    },
+  });
 
-  const { toast } = useToast();
+  // Word/Char count logic
+  const { wordCount, charCount } = useMemo(() => {
+    if (!editor) return { wordCount: 0, charCount: 0 };
+    const text = editor.getText();
+    return {
+      wordCount: text.trim().split(/\s+/).filter(Boolean).length,
+      charCount: text.length,
+    };
+  }, [editor?.state]);
 
-  const blocks: Block[] = useMemo(() => {
-    const content = activeChapter?.content || 'Welcome to your new book. Start writing here.';
-    const paragraphs = content.split(/<\/?p>/).filter(p => p.trim() !== '');
-    if (paragraphs.length === 0 && content) {
-        return [{
-            id: crypto.randomUUID(),
-            type: 'paragraph',
-            content: content,
-        }];
-    }
-    return paragraphs.map(p => ({
-        id: crypto.randomUUID(),
-        type: 'paragraph',
-        content: p.replace(/<[^>]+>/g, ''),
-    }));
-  }, [activeChapter]);
-
-  const hasUnsavedChanges = useMemo(() => {
-    // This logic needs to be adapted for the new block-based structure.
-    return false; 
-  }, []);
-  
   const handleSaveContent = useCallback(async () => {
-    // Save logic will be more complex with block editor
-  }, []);
+    if (!editor || !activeChapter || !book) return;
+    setSaveStatus('saving');
+    
+    try {
+        const chapterRef = doc(useFirestore(), 'books', book.id, 'chapters', activeChapter.id);
+        await updateDoc(chapterRef, {
+            content: editor.getHTML(),
+            wordCount: wordCount,
+            updatedAt: serverTimestamp(),
+        });
+        setSaveStatus('saved');
+    } catch (e: any) {
+        setSaveStatus('unsaved');
+    }
+  }, [editor, activeChapter, book, wordCount]);
+
+  // Autosave functionality
+  useEffect(() => {
+    if (saveStatus === 'unsaved') {
+      const timer = setTimeout(() => {
+        handleSaveContent();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus, handleSaveContent]);
 
   const handleExit = () => {
-    if (hasUnsavedChanges) {
+    if (saveStatus === 'unsaved') {
       setShowExitDialog(true);
     } else {
       router.push('/write');
@@ -167,53 +170,58 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
-        
-        <GlobalNav book={book} onExit={handleExit} />
+      {/* This new structure prevents layout collapse bugs.
+          - The parent is a flex column with a fixed height (h-screen).
+          - Header and Footer have fixed heights (flex-shrink-0).
+          - The main content area takes up the remaining space (flex-1) and provides the scroll container.
+          - This prevents the main body from ever scrolling and contains all scrolling within the `main` element.
+      */}
+      <GlobalNav book={book} onExit={handleExit} saveStatus={saveStatus} />
 
-        <EditorToolbar editor={null} aiTools={{}} />
+      <EditorToolbar editor={editor} />
 
-        <main className="flex-1 overflow-auto bg-[#f1f3f7] dark:bg-[#181a1f]">
-          <EditorCanvas blocks={blocks} />
-        </main>
-        
-        <footer className="flex h-[32px] flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 text-xs text-muted-foreground">
-            <div>
-                <span>Page 1 of {chapters.length}</span>
-            </div>
-            <div className="flex gap-4">
-                <span>{/* Word Count */} words</span>
-                <span>{/* Character Count */} characters</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <span>AI Ready</span>
-            </div>
-        </footer>
+      <main className="flex-1 overflow-y-auto bg-[#f1f3f7] dark:bg-[#181a1f]">
+        <EditorCanvas editor={editor} />
+      </main>
+      
+      <footer className="flex h-[32px] flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 text-xs text-muted-foreground">
+          <div>
+              <span>Page 1 of {chapters.length}</span>
+          </div>
+          <div className="flex gap-4">
+              <span>{wordCount} words</span>
+              <span>{charCount} characters</span>
+          </div>
+          <div className="flex items-center gap-2">
+              <span>AI Ready</span>
+          </div>
+      </footer>
 
-        <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>You have unsaved changes</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Do you want to save your work before leaving?
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <Button variant="ghost" onClick={() => {
-                        setShowExitDialog(false);
-                        router.push('/write');
-                    }}>
-                        Discard Changes
-                    </Button>
-                     <Button onClick={async () => {
-                        await handleSaveContent();
-                        setShowExitDialog(false);
-                        router.push('/write');
-                    }}>
-                        Save and Exit
-                    </Button>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>You have unsaved changes</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Do you want to save your work before leaving?
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <Button variant="ghost" onClick={() => {
+                      setShowExitDialog(false);
+                      router.push('/write');
+                  }}>
+                      Discard Changes
+                  </Button>
+                   <Button onClick={async () => {
+                      await handleSaveContent();
+                      setShowExitDialog(false);
+                      router.push('/write');
+                  }}>
+                      Save and Exit
+                  </Button>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

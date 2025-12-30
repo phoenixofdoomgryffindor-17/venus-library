@@ -5,6 +5,7 @@ import { Header } from '@/components/header';
 import MainApp from '@/components/main-app';
 import PageTransition from '@/components/page-transtion';
 import { Loader2 } from 'lucide-react';
+import { CommandPalette } from '@/components/command/CommandPalette';
 
 export default function MainLayout({
   children,
@@ -14,6 +15,7 @@ export default function MainLayout({
   return (
     <MainApp>
       <Header />
+      <CommandPalette />
       <main className="container mx-auto px-4 py-8">
         <Suspense
           fallback={
@@ -28,5 +30,3 @@ export default function MainLayout({
     </MainApp>
   );
 }
-
-    

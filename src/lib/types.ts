@@ -1,4 +1,5 @@
 
+import type { Editor } from '@tiptap/react';
 
 export type User = {
   uid: string;
@@ -82,10 +83,20 @@ export type SchoolCode = {
 };
 
 export type AIJob = {
-  id: string;
+  id:string;
   type: 'cover' | 'illustration' | 'rewrite' | 'narration';
   payload: Record<string, any>;
   status: 'pending' | 'completed' | 'failed';
   resultUrl?: string;
   createdAt: string;
 }
+
+export type Feature = {
+  id: string;
+  title: string;
+  keywords?: string[];
+  icon?: string;
+  shortcut?: string;
+  tab: 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'view';
+  action: (editor?: Editor | null) => void;
+};
