@@ -1,0 +1,545 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "A user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biography of the user."
+        },
+        "socials": {
+          "type": "string",
+          "description": "Links to the user's social media profiles."
+        },
+        "earnings": {
+          "type": "number",
+          "description": "The user's earnings."
+        },
+        "is2FAEnabled": {
+          "type": "boolean",
+          "description": "Flag for two-factor authentication."
+        },
+        "schoolCode": {
+          "type": "string",
+          "description": "The code for the user's school or enterprise."
+        },
+        "onboarded": {
+          "type": "boolean",
+          "description": "Whether the user has completed the initial profile setup."
+        },
+        "favoriteGenres": {
+          "type": "array",
+          "description": "The user's favorite book genres.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "readingGoals": {
+          "type": "string",
+          "description": "The user's personal reading goals."
+        },
+        "age": {
+          "type": "number",
+          "description": "The user's age."
+        },
+        "region": {
+            "type": "string",
+            "description": "The user's country or region."
+        },
+        "address": {
+            "type": "string",
+            "description": "The user's delivery address."
+        },
+        "phone": {
+            "type": "string",
+            "description": "The user's contact phone number for deliveries."
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "Book": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Book",
+      "type": "object",
+      "description": "A book written by an author.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Book entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the book."
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-friendly version of the title."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the book."
+        },
+        "genre": {
+          "type": "string",
+          "description": "The genre of the book."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to Author. (Relationship: Author 1:N Book)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the book (draft or published).",
+          "format": "string"
+        },
+        "coverUrl": {
+          "type": "string",
+          "description": "URL of the book cover image.",
+          "format": "uri"
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the book."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the book was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The timestamp when the book was last updated.",
+          "format": "date-time"
+        },
+        "ratingAvg": {
+          "type": "number",
+          "description": "The average rating of the book."
+        },
+        "ratingCount": {
+          "type": "number",
+          "description": "The number of ratings for the book."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "slug",
+        "authorId",
+        "status"
+      ]
+    },
+    "Chapter": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Chapter",
+      "type": "object",
+      "description": "A chapter within a book.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Chapter entity."
+        },
+        "bookId": {
+          "type": "string",
+          "description": "Reference to Book. (Relationship: Book 1:N Chapter)"
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the chapter."
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the chapter."
+        },
+        "order": {
+          "type": "number",
+          "description": "The order of the chapter within the book."
+        },
+        "wordCount": {
+          "type": "number",
+          "description": "The word count of the chapter."
+        },
+        "illustrations": {
+          "type": "array",
+          "description": "Array of illustration URLs for the chapter.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "bookId",
+        "title",
+        "order"
+      ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "A user review for a book.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Review entity."
+        },
+        "bookId": {
+          "type": "string",
+          "description": "Reference to Book. (Relationship: Book 1:N Review)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Review)"
+        },
+        "rating": {
+          "type": "number",
+          "description": "The rating given by the user for the book."
+        },
+        "comment": {
+          "type": "string",
+          "description": "The comment provided by the user for the book."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp when the review was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "bookId",
+        "userId",
+        "rating"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "An order placed by a user for a book.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Order entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Order)"
+        },
+        "bookId": {
+          "type": "string",
+          "description": "Reference to Book. (Relationship: Book 1:N Order)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount paid for the order."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp when the order was placed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "bookId",
+        "amount",
+        "timestamp"
+      ]
+    },
+    "AIJob": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AIJob",
+      "type": "object",
+      "description": "A job for the AI to perform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AIJob entity."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of AI job.",
+          "format": "string"
+        },
+        "payload": {
+          "type": "string",
+          "description": "The payload for the AI job."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the AI job.",
+          "format": "string"
+        },
+        "resultUrl": {
+          "type": "string",
+          "description": "The URL of the result of the AI job.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "payload",
+        "status"
+      ]
+    },
+    "Flag": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Flag",
+      "type": "object",
+      "description": "A flag for content moderation or AI-generated feedback.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Flag entity."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of content being flagged (e.g., book, review).",
+          "format": "string"
+        },
+        "contentId": {
+          "type": "string",
+          "description": "The ID of the content being flagged or reviewed."
+        },
+        "title": {
+          "type": "string",
+          "description": "A title for the feedback or flag."
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason for flagging the content or the AI-generated critique."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the content was flagged.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the flag (e.g., pending, resolved).",
+          "format": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "contentId",
+        "reason",
+        "date",
+        "status"
+      ]
+    },
+    "SchoolCode": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SchoolCode",
+      "type": "object",
+      "description": "A code for a school or enterprise.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SchoolCode entity."
+        },
+        "code": {
+          "type": "string",
+          "description": "The school or enterprise code."
+        },
+        "schoolName": {
+          "type": "string",
+          "description": "The name of the school or enterprise."
+        }
+      },
+      "required": [
+        "id",
+        "code",
+        "schoolName"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/books/{bookId}",
+        "definition": {
+          "entityName": "Book",
+          "schema": {
+            "$ref": "#/backend/entities/Book"
+          },
+          "description": "Stores all books in a single top-level collection. The 'authorId' field links each book to its author.",
+          "params": [
+            {
+              "name": "bookId",
+              "description": "The unique identifier for the book."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/books/{bookId}/chapters/{chapterId}",
+        "definition": {
+          "entityName": "Chapter",
+          "schema": {
+            "$ref": "#/backend/entities/Chapter"
+          },
+          "description": "Stores chapters for each book.",
+          "params": [
+            {
+              "name": "bookId",
+              "description": "The unique identifier for the book."
+            },
+            {
+              "name": "chapterId",
+              "description": "The unique identifier for the chapter."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores user reviews for books.",
+          "params": [
+            {
+              "name": "reviewId",
+              "description": "The unique identifier for the review."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores purchase orders for books.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/ai_jobs/{jobId}",
+        "definition": {
+          "entityName": "AIJob",
+          "schema": {
+            "$ref": "#/backend/entities/AIJob"
+          },
+          "description": "Stores AI generation jobs and their status.",
+          "params": [
+            {
+              "name": "jobId",
+              "description": "The unique identifier for the AI job."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/flags/{flagId}",
+        "definition": {
+          "entityName": "Flag",
+          "schema": {
+            "$ref": "#/backend/entities/Flag"
+          },
+          "description": "Stores content moderation flags and AI-generated feedback.",
+          "params": [
+            {
+              "name": "flagId",
+              "description": "The unique identifier for the flag or feedback item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schoolCodes/{codeId}",
+        "definition": {
+          "entityName": "SchoolCode",
+          "schema": {
+            "$ref": "#/backend/entities/SchoolCode"
+          },
+          "description": "Stores school and enterprise codes.",
+          "params": [
+            {
+              "name": "codeId",
+              "description": "The unique identifier for the school code."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Indicates admin roles. Document existence determines admin status.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the admin user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the Gemini Books application's features, emphasizing authorization independence, clarity, and scalability. It leverages path-based ownership for user-specific data and avoids hierarchical authorization dependencies by denormalizing authorization context where necessary.\n\n*   **Users Collection (`/users/{userId}`):** Stores user profiles. Authorization: Only the user with the matching `userId` can read/write their own document.\n*   **Books Collection (`/books/{bookId}`):** Stores all books in a single top-level collection. This is a more scalable approach than nesting books under users. The `authorId` field is indexed to allow for efficient and secure querying of books by a specific author. Authorization for writes is based on `request.auth.uid == resource.data.authorId`.\n*   **Chapters Subcollection (`/books/{bookId}/chapters/{chapterId}`):** Chapters are nested under books. This maintains data locality and improves query performance for fetching a book's content.\n*   **Reviews Collection (`/reviews/{reviewId}`):** A top-level collection for all reviews. This allows for flexible querying, such as fetching all reviews by a user or for a specific book, using indexes on `userId` and `bookId`.\n*   **Orders Collection (`/orders/{orderId}`):** A top-level collection for purchase orders, queryable by `userId`.\n*   **AI Jobs Collection (`/ai_jobs/{jobId}`):** A top-level collection for managing background AI tasks.\n*   **Flags Collection (`/flags/{flagId}`):** A top-level collection for content moderation and AI feedback, allowing admins to query all pending flags easily.\n*   **School Codes Collection (`/schoolCodes/{schoolCodeId}`):** Stores school codes for validation.\n*   **Admin Roles Collection (`/roles_admin/{userId}`):** A simple and secure way to manage admin privileges via document existence.\n\nThis flattened structure simplifies security rules, improves query flexibility, and is the standard best practice for scalable Firestore design."
+  }
+}

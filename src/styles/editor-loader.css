@@ -1,0 +1,96 @@
+
+.editor-loader {
+  position: fixed;
+  inset: 0;
+  background: #0b0b0f;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 1;
+}
+
+.editor-loader.fade-out {
+  animation: fadeOut 0.45s ease forwards;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.editor-loader h1 {
+  color: #eaeaea;
+  font-size: clamp(20px, 4vw, 32px);
+  letter-spacing: 0.12em;
+}
+
+/* Top progress bar */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.top-bar > div {
+  height: 100%;
+  background: linear-gradient(90deg, #6ae3ff, #8b5cf6);
+  transition: width 0.2s ease;
+}
+
+/* Green success tick */
+.success-check {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 3px solid #22c55e;
+  color: #22c55e;
+  font-size: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pop 0.35s ease;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Cancel button */
+.cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #eaeaea;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .top-bar > div {
+    transition: none;
+  }
+  .editor-loader.fade-out {
+    animation: none;
+  }
+}

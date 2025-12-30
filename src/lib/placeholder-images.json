@@ -1,0 +1,40 @@
+{
+  "placeholderImages": [
+    {
+      "id": "cover1",
+      "description": "Abstract book cover with cosmic swirls.",
+      "imageUrl": "https://images.unsplash.com/photo-1565638469233-8347def1fa4b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb3NtaWMlMjBhYnN0cmFjdHxlbnwwfHx8fDE3NjU1MTIyMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cosmic abstract"
+    },
+    {
+      "id": "cover2",
+      "description": "Fantasy book cover with a lone castle on a hill.",
+      "imageUrl": "https://images.unsplash.com/photo-1533154683836-84ea7a0bc310?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmYW50YXN5JTIwY2FzdGxlfGVufDB8fHx8MTc2NTQ1OTUwNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy castle"
+    },
+    {
+      "id": "cover3",
+      "description": "Science fiction book cover with a futuristic cityscape.",
+      "imageUrl": "https://images.unsplash.com/photo-1536768139911-e290a59011e4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZnV0dXJpc3RpYyUyMGNpdHl8ZW58MHx8fHwxNzY1NDMzNjMyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futuristic city"
+    },
+    {
+      "id": "cover4",
+      "description": "Mystery book cover with a foggy alley.",
+      "imageUrl": "https://images.unsplash.com/photo-1735469992510-cf1a947d0e31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmb2dneSUyMGFsbGV5fGVufDB8fHx8MTc2NTUxMjIwN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "foggy alley"
+    },
+    {
+      "id": "cover5",
+      "description": "Romance book cover with a silhouette of a couple.",
+      "imageUrl": "https://images.unsplash.com/photo-1474552226712-ac0f0961a954?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjb3VwbGUlMjBzaWxob3VldHRlfGVufDB8fHx8MTc2NTUxMjIwNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "couple silhouette"
+    },
+    {
+      "id": "cover6",
+      "description": "Thriller book cover with a stark, high-contrast design.",
+      "imageUrl": "https://picsum.photos/seed/cover6/600/800",
+      "imageHint": "stark thriller"
+    }
+  ]
+}
