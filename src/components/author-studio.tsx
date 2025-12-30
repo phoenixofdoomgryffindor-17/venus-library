@@ -25,7 +25,8 @@ import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
-import { openCommandPalette } from './command/CommandPalette';
+import TextStyle from '@tiptap/extension-text-style';
+import { openCommandPalette } from './command/palette-state';
 
 interface AuthorStudioProps {
   book: Book;
@@ -134,6 +135,7 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
         TextAlign.configure({
             types: ['heading', 'paragraph'],
         }),
+        TextStyle,
     ],
     content: activeChapter?.content || '',
     onUpdate: ({ editor }) => {
@@ -179,6 +181,17 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
     }
   }, [editor, activeChapter, book, wordCount, firestore, activeChapterIndex, toast]);
 
+  // useEffect to automatically save content after a delay of inactivity
+  useEffect(() => {
+    if (saveStatus === 'unsaved') {
+      const timer = setTimeout(() => {
+        handleSaveContent();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus, handleSaveContent]);
+
+  // When the active chapter changes, update the editor content
   useEffect(() => {
     if (editor && activeChapter) {
         if (editor.getHTML() !== activeChapter.content) {
@@ -226,15 +239,6 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
      }
   };
 
-  useEffect(() => {
-    if (saveStatus === 'unsaved') {
-      const timer = setTimeout(() => {
-        handleSaveContent();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [saveStatus, handleSaveContent]);
-
   const handleExit = async () => {
     if (saveStatus === 'unsaved') {
       setShowExitDialog(true);
@@ -246,7 +250,7 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
       <GlobalNav book={book} onExit={handleExit} saveStatus={saveStatus} editor={editor} />
-      <EditorToolbar editor={editor} onAddChapter={handleAddNewChapter} />
+      <EditorToolbar editor={editor} />
       <main className="flex-1 overflow-y-auto bg-[#181a1f] p-4">
         <EditorCanvas editor={editor} />
       </main>

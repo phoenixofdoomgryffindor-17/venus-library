@@ -56,14 +56,6 @@ registerFeature({
   action: (editor) => editor?.chain().focus().toggleStrike().run(),
 });
 registerFeature({
-  id: 'heading1', title: 'Heading 1', icon: 'Heading1', shortcut: 'Ctrl+Alt+1', tab: 'home', group: 'style',
-  action: (editor) => editor?.chain().focus().toggleHeading({ level: 1 }).run(),
-});
-registerFeature({
-  id: 'heading2', title: 'Heading 2', icon: 'Heading2', shortcut: 'Ctrl+Alt+2', tab: 'home', group: 'style',
-  action: (editor) => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
-});
-registerFeature({
   id: 'alignLeft', title: 'Align Left', icon: 'AlignLeft', shortcut: 'Ctrl+Shift+L', tab: 'home', group: 'align',
   action: (editor) => editor?.chain().focus().setTextAlign('left').run(),
 });
@@ -187,15 +179,11 @@ registerFeature({
 });
 
 // --- CORE (non-tab) FEATURES for COMMAND PALETTE ---
-// This feature can now safely import openCommandPalette because the circular
-// dependency has been broken.
 registerFeature({
     id: 'core.openCommands',
     title: 'Open Command Palette',
     keywords: ['command', 'palette', 'search', 'action'],
     shortcut: 'Ctrl+K',
     action: openCommandPalette,
-    // This feature doesn't belong to a specific tab, but we need to assign one.
-    // 'view' is a sensible default for meta-actions.
-    tab: 'view'
+    tab: 'view' // Assign to a tab so it doesn't get lost
 });

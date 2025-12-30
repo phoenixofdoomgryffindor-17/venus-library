@@ -13,6 +13,7 @@ import {
   ImageIcon, Table, Footnote, Link as LinkIcon, Quote, Code, List, ListOrdered,
   SpellCheck, FileCheck, MessageCircle, BarChart, BookUser,
   PanelLeft, PanelRight, Fullscreen, Rows, Columns, Search,
+  ChevronDown, TextQuote, Pilcrow, Heading3, Heading4, Heading5, Heading6, CaseSensitive
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -20,7 +21,13 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Textarea } from './ui/textarea';
 import { getFeaturesByTab, type Feature } from '@/engine/features/FeatureRegistry';
 import { Separator } from './ui/separator';
-import { openCommandPalette } from '../command/palette-state';
+import { openCommandPalette } from './command/palette-state';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type TabName = 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';
 
@@ -30,10 +37,10 @@ type LucideIcon = React.ForwardRefExoticComponent<React.RefAttributes<SVGSVGElem
 const ICONS: { [key: string]: LucideIcon } = {
   Home, SquarePlus, Layout, BookOpen, Bot, BookUser, Maximize,
   Bold, Italic, UnderlineIcon, Strikethrough,
-  Heading1, Heading2,
+  Heading1, Heading2, Heading3, Heading4, Heading5, Heading6,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  MessageSquare, BookImage, Minus,
-  Wand2, BrainCircuit, User,
+  MessageSquare, BookImage, Minus, CaseSensitive,
+  Wand2, BrainCircuit, User, TextQuote, Pilcrow,
   ImageIcon, Table, Footnote, LinkIcon, Quote, Code, List, ListOrdered,
   SpellCheck, FileCheck, MessageCircle, BarChart,
   PanelLeft, PanelRight, Fullscreen, Rows, Columns,
@@ -107,6 +114,40 @@ const AiFeatureCard = ({ title, icon, children }: {title: string, icon: React.Re
     </div>
 )
 
+const FontStyleDropdown = ({ editor }: { editor: Editor | null }) => {
+    if (!editor) return null;
+
+    const currentFont = editor.getAttributes('textStyle').fontFamily || 'sans-serif';
+
+    const fonts = [
+        { name: 'Sans Serif', value: 'sans-serif' },
+        { name: 'Serif', value: 'serif' },
+        { name: 'Monospace', value: 'monospace' },
+    ];
+    
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-auto px-2">
+                    <span>{fonts.find(f => f.value === currentFont)?.name || 'Font'}</span>
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                {fonts.map(font => (
+                    <DropdownMenuItem 
+                        key={font.value} 
+                        onClick={() => editor.chain().focus().setFontFamily(font.value).run()}
+                        className={currentFont === font.value ? 'bg-accent' : ''}
+                    >
+                        <span style={{fontFamily: font.value}}>{font.name}</span>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
+}
+
 const TabContentRenderer = ({ tab, editor }: { tab: TabName, editor: Editor | null }) => {
   const features = getFeaturesByTab(tab);
 
@@ -126,27 +167,49 @@ const TabContentRenderer = ({ tab, editor }: { tab: TabName, editor: Editor | nu
     )
   }
 
-  // Group features by a logical separator if they have one
-  const groups: Record<string, Feature[]> = features.reduce((acc, feature) => {
-    const groupName = feature.group || 'default';
-    if (!acc[groupName]) {
-      acc[groupName] = [];
-    }
-    acc[groupName].push(feature);
-    return acc;
-  }, {} as Record<string, Feature[]>);
+  const defaultGroup = (
+      <div className="flex items-center gap-1">
+          {features.filter(f => !f.group).map(feature => (
+               <ToolbarButton key={feature.id} feature={feature} editor={editor} />
+          ))}
+      </div>
+  );
+
+  const groupedFeatures = features
+    .filter(f => f.group)
+    .reduce((acc, feature) => {
+        const groupName = feature.group || 'default';
+        if (!acc[groupName]) acc[groupName] = [];
+        acc[groupName].push(feature);
+        return acc;
+    }, {} as Record<string, Feature[]>);
 
 
   return (
-    <div className="flex items-center h-full p-2 gap-1">
-      {Object.entries(groups).map(([groupName, groupFeatures], index) => (
+    <div className="flex items-center justify-center h-full p-2 gap-1">
+      {tab === 'home' && (
+          <>
+            <div className="flex items-center gap-1">
+                <ToolbarButton feature={{ id: 'font-down', title: 'Decrease Font Size', icon: 'Pilcrow', tab: 'home', action: (e) => e?.commands.focus() }} editor={editor} />
+                <ToolbarButton feature={{ id: 'font-up', title: 'Increase Font Size', icon: 'TextQuote', tab: 'home', action: (e) => e?.commands.focus() }} editor={editor} />
+            </div>
+            <Separator orientation="vertical" className="h-6 mx-1" />
+            <FontStyleDropdown editor={editor} />
+            <Separator orientation="vertical" className="h-6 mx-1" />
+          </>
+      )}
+
+      {Object.entries(groupedFeatures).map(([groupName, groupFeatures], index) => (
         <React.Fragment key={groupName}>
           {index > 0 && <Separator orientation="vertical" className="h-6 mx-1" />}
-          {groupFeatures.map(feature => (
-            <ToolbarButton key={feature.id} feature={feature} editor={editor} />
-          ))}
+          <div className="flex items-center gap-1">
+            {groupFeatures.map(feature => (
+              <ToolbarButton key={feature.id} feature={feature} editor={editor} />
+            ))}
+          </div>
         </React.Fragment>
       ))}
+      {features.some(f => !f.group) && defaultGroup}
     </div>
   );
 };
@@ -167,7 +230,7 @@ const EditorToolbar = ({ editor }: { editor: Editor | null }) => {
 
   return (
     <div className="h-[96px] p-2 border-b bg-card border-border flex-shrink-0 flex flex-col">
-      <div className="flex items-center border-b">
+      <div className="flex items-center justify-center border-b">
         {tabs.map(({ name, icon: Icon }) => (
           <Button
             key={name}
