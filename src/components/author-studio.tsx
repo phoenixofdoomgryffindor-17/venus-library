@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Book, Chapter } from '@/lib/types';
+import type { Book, Chapter, Feature } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, ArrowLeft, Undo, Redo } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
@@ -23,6 +23,8 @@ import { Logo } from './icons';
 import { EditorCanvas } from './editor/EditorCanvas';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { PluginManager } from '@/components/plugins/PluginManager';
+import { openCommandPalette } from './command/CommandPalette';
 
 interface AuthorStudioProps {
   book: Book;
@@ -39,7 +41,7 @@ const createSlug = (title: string) => {
     .trim();
 };
 
-const GlobalNav = ({ book, onExit, saveStatus }: { book: Book, onExit: () => void, saveStatus: 'saved' | 'saving' | 'unsaved' }) => {
+const GlobalNav = ({ book, onExit, saveStatus, editor }: { book: Book, onExit: () => void, saveStatus: 'saved' | 'saving' | 'unsaved', editor: any }) => {
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [editableTitle, setEditableTitle] = useState(book.title);
   const firestore = useFirestore();
@@ -170,13 +172,7 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
-      {/* This new structure prevents layout collapse bugs.
-          - The parent is a flex column with a fixed height (h-screen).
-          - Header and Footer have fixed heights (flex-shrink-0).
-          - The main content area takes up the remaining space (flex-1) and provides the scroll container.
-          - This prevents the main body from ever scrolling and contains all scrolling within the `main` element.
-      */}
-      <GlobalNav book={book} onExit={handleExit} saveStatus={saveStatus} />
+      <GlobalNav book={book} onExit={handleExit} saveStatus={saveStatus} editor={editor} />
 
       <EditorToolbar editor={editor} />
 
@@ -193,7 +189,7 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
               <span>{charCount} characters</span>
           </div>
           <div className="flex items-center gap-2">
-              <span>AI Ready</span>
+              <Button variant="ghost" size="sm" onClick={openCommandPalette}>AI Ready</Button>
           </div>
       </footer>
 
