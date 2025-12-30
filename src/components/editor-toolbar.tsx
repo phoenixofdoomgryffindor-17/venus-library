@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react';
 import type { Editor } from '@tiptap/react';
 import { useState } from 'react';
 import {
@@ -9,17 +10,17 @@ import {
   MessageSquare, BookImage, Minus, FilePlus,
   Wand2, BrainCircuit, User,
   Home, SquarePlus, Layout, BookOpen, Bot, Maximize,
-  Image as ImageIcon, Table, Footnote, Link as LinkIcon, Quote, Code, List, ListOrdered,
+  ImageIcon, Table, Footnote, Link as LinkIcon, Quote, Code, List, ListOrdered,
   SpellCheck, FileCheck, MessageCircle, BarChart, BookUser,
-  PanelLeft, PanelRight, Fullscreen, Rows, Columns,
+  PanelLeft, PanelRight, Fullscreen, Rows, Columns, Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Textarea } from './ui/textarea';
 import { getFeaturesByTab, type Feature } from '@/engine/features/FeatureRegistry';
-import { openCommandPalette } from './command/CommandPalette';
 import { Separator } from './ui/separator';
+import { openCommandPalette } from '../command/palette-state';
 
 type TabName = 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';
 
@@ -36,6 +37,7 @@ const ICONS: { [key: string]: LucideIcon } = {
   ImageIcon, Table, Footnote, LinkIcon, Quote, Code, List, ListOrdered,
   SpellCheck, FileCheck, MessageCircle, BarChart,
   PanelLeft, PanelRight, Fullscreen, Rows, Columns,
+  Search,
 };
 
 const ToolbarButton = ({ feature, editor }: { feature: Feature, editor: Editor | null }) => {
@@ -46,6 +48,32 @@ const ToolbarButton = ({ feature, editor }: { feature: Feature, editor: Editor |
     return null;
   }
   
+  const canRunAction = () => {
+    if (!editor) return false;
+    if (!feature.canBeDisabled) return true;
+    
+    // A bit of a hack to check if the action can be run.
+    // Tiptap's `can()` chain is synchronous.
+    // We can simulate the action call to check its availability.
+    const { state, view } = editor;
+    const { from, to } = view.state.selection;
+    let canRun = false;
+    // Temporarily apply the transaction without dispatching to check if it's possible
+    const tempState = state.apply(state.tr.setSelection(state.selection));
+    const action = feature.action;
+    
+    try {
+        // This is a simplified check. A more robust solution might involve a custom `can` function per feature.
+        // For now, we assume if the editor is focused, most actions are available.
+        canRun = editor.isFocused;
+    } catch(e) {
+        // if action throws, it can't be run
+        canRun = false;
+    }
+
+    return canRun;
+  }
+
   return (
     <TooltipProvider delayDuration={100}>
       <Tooltip>
@@ -55,7 +83,7 @@ const ToolbarButton = ({ feature, editor }: { feature: Feature, editor: Editor |
             size="icon"
             className="h-8 w-8 p-1.5"
             onClick={() => feature.action(editor)}
-            disabled={feature.canBeDisabled && editor ? !editor.can().runAction(feature.action) : !editor}
+            disabled={!editor}
           >
             <Icon />
           </Button>
@@ -79,7 +107,7 @@ const AiFeatureCard = ({ title, icon, children }: {title: string, icon: React.Re
     </div>
 )
 
-const TabContentRenderer = ({ tab, editor, onAddChapter }: { tab: TabName, editor: Editor | null, onAddChapter: () => void }) => {
+const TabContentRenderer = ({ tab, editor }: { tab: TabName, editor: Editor | null }) => {
   const features = getFeaturesByTab(tab);
 
   if (tab === 'ai') {
@@ -124,7 +152,7 @@ const TabContentRenderer = ({ tab, editor, onAddChapter }: { tab: TabName, edito
 };
 
 
-const EditorToolbar = ({ editor, onAddChapter }: { editor: Editor | null, onAddChapter: () => void }) => {
+const EditorToolbar = ({ editor }: { editor: Editor | null }) => {
   const [activeTab, setActiveTab] = useState<TabName>('home');
 
   const tabs: { name: TabName; icon: LucideIcon }[] = [
@@ -155,7 +183,7 @@ const EditorToolbar = ({ editor, onAddChapter }: { editor: Editor | null, onAddC
       </div>
 
       <div className="flex-1 overflow-hidden">
-         <TabContentRenderer tab={activeTab} editor={editor} onAddChapter={onAddChapter} />
+         <TabContentRenderer tab={activeTab} editor={editor} />
       </div>
     </div>
   );
