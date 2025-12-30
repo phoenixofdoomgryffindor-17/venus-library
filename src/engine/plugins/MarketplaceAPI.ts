@@ -1,6 +1,6 @@
 
 import type { VenusPlugin } from './VenusPlugin';
-import { ALL_PLUGINS } from '@/plugins/all';
+import { ALL_PLUGINS } from '@/plugins/top';
 
 // This is a stub for a real API call. In a production app, this would
 // fetch manifest data from a secure backend to prevent tampering.
