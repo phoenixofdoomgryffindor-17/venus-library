@@ -17,6 +17,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog"
 
 function PluginCard({ plugin, onToggle, isEnabled, isToggling }: { plugin: VenusPlugin, onToggle: (plugin: VenusPlugin, price?: number) => void, isEnabled: boolean, isToggling: boolean }) {
@@ -68,12 +69,12 @@ function PluginCard({ plugin, onToggle, isEnabled, isToggling }: { plugin: Venus
                     </ul>
                 </div>
                 <DialogFooter>
-                    <DialogTrigger>
+                    <DialogClose asChild>
                         <Button variant="ghost">Cancel</Button>
-                    </DialogTrigger>
-                     <DialogTrigger>
+                    </DialogClose>
+                    <DialogClose asChild>
                         <Button onClick={() => onToggle(plugin, plugin.price)}>Grant & Enable</Button>
-                    </DialogTrigger>
+                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
