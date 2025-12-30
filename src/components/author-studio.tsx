@@ -5,10 +5,10 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Book, Chapter, Feature } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, ArrowLeft, Undo, Redo } from 'lucide-react';
+import { Loader2, Check, ArrowLeft, Undo, Redo, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -112,8 +112,14 @@ const GlobalNav = ({ book, onExit, saveStatus, editor }: { book: Book, onExit: (
 
 export default function AuthorStudio({ book, initialChapters }: AuthorStudioProps) {
   const router = useRouter();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  
   const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
-  const [activeChapter, setActiveChapter] = useState<Chapter | null>(initialChapters[0] ?? null);
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+  
+  const activeChapter = useMemo(() => chapters[activeChapterIndex], [chapters, activeChapterIndex]);
+
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
 
@@ -135,35 +141,97 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
     };
   }, [editor?.state]);
 
-  const handleSaveContent = useCallback(async () => {
-    if (!editor || !activeChapter || !book) return;
+  const handleSaveContent = useCallback(async (content: string) => {
+    if (!activeChapter || !book) return;
     setSaveStatus('saving');
     
     try {
-        const chapterRef = doc(useFirestore(), 'books', book.id, 'chapters', activeChapter.id);
+        const chapterRef = doc(firestore, 'books', book.id, 'chapters', activeChapter.id);
         await updateDoc(chapterRef, {
-            content: editor.getHTML(),
+            content: content,
             wordCount: wordCount,
             updatedAt: serverTimestamp(),
         });
+        
+        // Update local chapter state as well
+        setChapters(prev => {
+            const newChapters = [...prev];
+            newChapters[activeChapterIndex] = { ...activeChapter, content, wordCount };
+            return newChapters;
+        });
+
         setSaveStatus('saved');
     } catch (e: any) {
         setSaveStatus('unsaved');
+        toast({ title: 'Error saving', description: e.message, variant: 'destructive' });
     }
-  }, [editor, activeChapter, book, wordCount]);
+  }, [editor, activeChapter, book, wordCount, firestore, activeChapterIndex, toast]);
+
+  // When activeChapterIndex changes, save the old content and load the new.
+  useEffect(() => {
+    if (editor && activeChapter) {
+        // Only update if the editor content is different from the new active chapter's content
+        if (editor.getHTML() !== activeChapter.content) {
+            editor.commands.setContent(activeChapter.content, false);
+            setSaveStatus('saved'); // New chapter is considered saved initially
+        }
+    }
+  }, [activeChapter, editor]);
+
+
+  const navigatePage = async (direction: 'next' | 'prev') => {
+    // First, save the current content
+    if (saveStatus === 'unsaved' && editor) {
+        await handleSaveContent(editor.getHTML());
+    }
+
+    // Then, navigate
+    const newIndex = direction === 'next' ? activeChapterIndex + 1 : activeChapterIndex - 1;
+    if (newIndex >= 0 && newIndex < chapters.length) {
+        setActiveChapterIndex(newIndex);
+    }
+  };
+
+  const handleAddNewChapter = async () => {
+     if (saveStatus === 'unsaved' && editor) {
+        await handleSaveContent(editor.getHTML());
+     }
+     
+     const newOrder = chapters.length + 1;
+     const newChapterData = {
+         bookId: book.id,
+         title: `Chapter ${newOrder}`,
+         content: '',
+         order: newOrder,
+         wordCount: 0,
+         createdAt: serverTimestamp(),
+         updatedAt: serverTimestamp(),
+     };
+
+     try {
+        const docRef = await addDoc(collection(firestore, 'books', book.id, 'chapters'), newChapterData);
+        const newChapterWithId = { ...newChapterData, id: docRef.id };
+        
+        setChapters(prev => [...prev, newChapterWithId]);
+        setActiveChapterIndex(chapters.length); // Navigate to the new chapter
+        toast({ title: "Chapter added" });
+     } catch (e: any) {
+        toast({ title: "Error adding chapter", description: e.message, variant: 'destructive' });
+     }
+  };
 
   // Autosave functionality
   useEffect(() => {
     if (saveStatus === 'unsaved') {
       const timer = setTimeout(() => {
-        handleSaveContent();
+        if(editor) handleSaveContent(editor.getHTML());
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [saveStatus, handleSaveContent]);
+  }, [saveStatus, editor, handleSaveContent]);
 
-  const handleExit = () => {
-    if (saveStatus === 'unsaved') {
+  const handleExit = async () => {
+    if (saveStatus === 'unsaved' && editor) {
       setShowExitDialog(true);
     } else {
       router.push('/write');
@@ -174,22 +242,31 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
       <GlobalNav book={book} onExit={handleExit} saveStatus={saveStatus} editor={editor} />
 
-      <EditorToolbar editor={editor} />
+      <EditorToolbar editor={editor} onAddChapter={handleAddNewChapter} />
 
       <main className="flex-1 overflow-y-auto bg-[#f1f3f7] dark:bg-[#181a1f]">
         <EditorCanvas editor={editor} />
       </main>
       
       <footer className="flex h-[32px] flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 text-xs text-muted-foreground">
-          <div>
-              <span>Page 1 of {chapters.length}</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigatePage('prev')} disabled={activeChapterIndex === 0}>
+                <ChevronLeft />
+            </Button>
+            <span>Page {activeChapterIndex + 1} of {chapters.length}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigatePage('next')} disabled={activeChapterIndex >= chapters.length - 1}>
+                <ChevronRight />
+            </Button>
           </div>
           <div className="flex gap-4">
               <span>{wordCount} words</span>
               <span>{charCount} characters</span>
           </div>
           <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={openCommandPalette}>AI Ready</Button>
+              <Button variant="ghost" size="sm" className="h-auto py-0.5" onClick={openCommandPalette}>
+                <Wand2 className="mr-2 h-3 w-3" />
+                AI Ready
+              </Button>
           </div>
       </footer>
 
@@ -209,7 +286,7 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
                       Discard Changes
                   </Button>
                    <Button onClick={async () => {
-                      await handleSaveContent();
+                      if(editor) await handleSaveContent(editor.getHTML());
                       setShowExitDialog(false);
                       router.push('/write');
                   }}>

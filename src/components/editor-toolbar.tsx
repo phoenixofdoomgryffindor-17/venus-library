@@ -6,7 +6,7 @@ import { useState } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  MessageSquare, BookImage, Minus,
+  MessageSquare, BookImage, Minus, FilePlus,
   Wand2, BrainCircuit, User,
   Home, SquarePlus, Layout, BookOpen, Bot, Maximize,
 } from 'lucide-react';
@@ -62,7 +62,7 @@ const AiFeatureCard = ({ title, icon, children }: {title: string, icon: React.Re
     </div>
 )
 
-const TabContentRenderer = ({ tab, editor }: { tab: TabName, editor: Editor | null }) => {
+const TabContentRenderer = ({ tab, editor, onAddChapter }: { tab: TabName, editor: Editor | null, onAddChapter: () => void }) => {
   const features = getFeaturesByTab(tab);
   
   if (tab === 'ai') {
@@ -86,6 +86,19 @@ const TabContentRenderer = ({ tab, editor }: { tab: TabName, editor: Editor | nu
     )
   }
 
+  if (tab === 'insert') {
+      return (
+        <div className="flex items-center h-full p-2">
+            <Button variant="ghost" size="sm" onClick={onAddChapter}>
+                <FilePlus /> Add New Chapter
+            </Button>
+            {features.map(feature => (
+              <ToolbarButton key={feature.id} feature={feature} editor={editor} />
+            ))}
+        </div>
+      );
+  }
+
   if (tab === 'view') {
     return (
         <div className="p-2 h-full flex items-center">
@@ -105,7 +118,7 @@ const TabContentRenderer = ({ tab, editor }: { tab: TabName, editor: Editor | nu
 };
 
 
-const EditorToolbar = ({ editor }: { editor: Editor | null }) => {
+const EditorToolbar = ({ editor, onAddChapter }: { editor: Editor | null, onAddChapter: () => void }) => {
   const [activeTab, setActiveTab] = useState<TabName>('home');
 
   const tabs: { name: TabName, icon: React.ElementType }[] = [
@@ -119,12 +132,6 @@ const EditorToolbar = ({ editor }: { editor: Editor | null }) => {
 
   return (
     <div className="h-[96px] p-2 border-b bg-card border-border flex-shrink-0 flex flex-col">
-      {/* 
-        This is the corrected Tabs implementation.
-        - It uses a simple state (`activeTab`) to control which tab is active.
-        - The `TabsContentRenderer` is rendered *once*, and it internally decides what to show.
-        - This prevents the layout from collapsing or growing, fixing the infinite scroll bug.
-      */}
       <div className="flex items-center border-b">
         {tabs.map(({ name, icon: Icon }) => (
           <Button
@@ -141,7 +148,7 @@ const EditorToolbar = ({ editor }: { editor: Editor | null }) => {
       </div>
 
       <div className="flex-1 overflow-hidden">
-         <TabContentRenderer tab={activeTab} editor={editor} />
+         <TabContentRenderer tab={activeTab} editor={editor} onAddChapter={onAddChapter} />
       </div>
     </div>
   );
