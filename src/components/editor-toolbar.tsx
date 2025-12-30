@@ -9,50 +9,67 @@ import {
   MessageSquare, BookImage, Minus, FilePlus,
   Wand2, BrainCircuit, User,
   Home, SquarePlus, Layout, BookOpen, Bot, Maximize,
+  Image as ImageIcon, Table, Footnote, Link as LinkIcon, Quote, Code, List, ListOrdered,
+  SpellCheck, FileCheck, MessageCircle, BarChart, BookUser,
+  PanelLeft, PanelRight, Fullscreen, Rows, Columns,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Textarea } from './ui/textarea';
-import { Loader2 } from 'lucide-react';
-import { PluginManager } from '@/components/plugins/PluginManager';
 import { getFeaturesByTab, type Feature } from '@/engine/features/FeatureRegistry';
 import { openCommandPalette } from './command/CommandPalette';
+import { Separator } from './ui/separator';
 
-type TabName = 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'view';
+type TabName = 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';
 
-const ICONS: { [key: string]: React.ElementType } = {
-  Home, SquarePlus, Layout, BookOpen, Bot, Maximize,
+// Lucide-React doesn't export a generic 'Icon' type, so we use a more general type.
+type LucideIcon = React.ForwardRefExoticComponent<React.RefAttributes<SVGSVGElement>>;
+
+const ICONS: { [key: string]: LucideIcon } = {
+  Home, SquarePlus, Layout, BookOpen, Bot, BookUser, Maximize,
   Bold, Italic, UnderlineIcon, Strikethrough,
   Heading1, Heading2,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   MessageSquare, BookImage, Minus,
   Wand2, BrainCircuit, User,
+  ImageIcon, Table, Footnote, LinkIcon, Quote, Code, List, ListOrdered,
+  SpellCheck, FileCheck, MessageCircle, BarChart,
+  PanelLeft, PanelRight, Fullscreen, Rows, Columns,
 };
 
-const ToolbarButton = ({ feature, editor }: { feature: Feature, editor: Editor | null }) => (
-  <TooltipProvider delayDuration={100}>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant={editor?.isActive(feature.id) ? 'secondary' : 'ghost'}
-          size="sm"
-          className="h-auto p-2"
-          onClick={() => feature.action(editor)}
-          disabled={!editor}
-        >
-          {ICONS[feature.icon || ''] ? <div as={ICONS[feature.icon || '']} /> : feature.title}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom">
-        <p>{feature.title}</p>
-        {feature.shortcut && <p className="text-xs text-muted-foreground">{feature.shortcut}</p>}
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-);
+const ToolbarButton = ({ feature, editor }: { feature: Feature, editor: Editor | null }) => {
+  const Icon = ICONS[feature.icon || ''];
 
-// This is a simplified AiFeatureCard for demonstration.
+  if (!Icon) {
+    console.warn(`Icon not found for feature: ${feature.icon}`);
+    return null;
+  }
+  
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={editor?.isActive(feature.id) ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-8 w-8 p-1.5"
+            onClick={() => feature.action(editor)}
+            disabled={feature.canBeDisabled && editor ? !editor.can().runAction(feature.action) : !editor}
+          >
+            <Icon />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>{feature.title}</p>
+          {feature.shortcut && <p className="text-xs text-muted-foreground">{feature.shortcut}</p>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
+
 const AiFeatureCard = ({ title, icon, children }: {title: string, icon: React.ReactNode, children: React.ReactNode}) => (
     <div className="p-4 border rounded-lg bg-card/80 w-80 flex-shrink-0">
         <h4 className="font-semibold text-base flex items-center gap-2 mb-3">{icon}{title}</h4>
@@ -64,55 +81,44 @@ const AiFeatureCard = ({ title, icon, children }: {title: string, icon: React.Re
 
 const TabContentRenderer = ({ tab, editor, onAddChapter }: { tab: TabName, editor: Editor | null, onAddChapter: () => void }) => {
   const features = getFeaturesByTab(tab);
-  
+
   if (tab === 'ai') {
     return (
       <ScrollArea className="w-full whitespace-nowrap h-full">
-        <div className="flex space-x-4 pb-4 h-full p-2">
-          <AiFeatureCard title="Rewrite" icon={<Wand2/>}>
-              <Textarea placeholder="Paste text here or it will use your selection." />
-              <Button className="w-full" disabled={!editor}>Run Rewrite</Button>
-          </AiFeatureCard>
-          <AiFeatureCard title="Summarize" icon={<BrainCircuit/>}>
-              <Button className="w-full" disabled={!editor}>Summarize Page</Button>
-          </AiFeatureCard>
-          <AiFeatureCard title="Character Generator" icon={<User/>}>
-              <Textarea placeholder="e.g., A grumpy wizard..." />
-              <Button className="w-full" disabled={!editor}>Generate Character</Button>
-          </AiFeatureCard>
+        <div className="flex space-x-4 pb-4 h-full p-2 items-center">
+            {features.map(feature => (
+                <AiFeatureCard key={feature.id} title={feature.title} icon={<Wand2 className="h-5 w-5" />}>
+                    <Textarea placeholder={feature.description || "Enter prompt or select text..."} />
+                    <Button className="w-full" onClick={() => feature.action(editor)} disabled={!editor}>Run</Button>
+                </AiFeatureCard>
+            ))}
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
     )
   }
 
-  if (tab === 'insert') {
-      return (
-        <div className="flex items-center h-full p-2">
-            <Button variant="ghost" size="sm" onClick={onAddChapter}>
-                <FilePlus /> Add New Chapter
-            </Button>
-            {features.map(feature => (
-              <ToolbarButton key={feature.id} feature={feature} editor={editor} />
-            ))}
-        </div>
-      );
-  }
+  // Group features by a logical separator if they have one
+  const groups: Record<string, Feature[]> = features.reduce((acc, feature) => {
+    const groupName = feature.group || 'default';
+    if (!acc[groupName]) {
+      acc[groupName] = [];
+    }
+    acc[groupName].push(feature);
+    return acc;
+  }, {} as Record<string, Feature[]>);
 
-  if (tab === 'view') {
-    return (
-        <div className="p-2 h-full flex items-center">
-            <PluginManager />
-        </div>
-    )
-  }
 
   return (
-    <div className="flex items-center h-full p-2">
-      {features.map(feature => (
-        <ToolbarButton key={feature.id} feature={feature} editor={editor} />
+    <div className="flex items-center h-full p-2 gap-1">
+      {Object.entries(groups).map(([groupName, groupFeatures], index) => (
+        <React.Fragment key={groupName}>
+          {index > 0 && <Separator orientation="vertical" className="h-6 mx-1" />}
+          {groupFeatures.map(feature => (
+            <ToolbarButton key={feature.id} feature={feature} editor={editor} />
+          ))}
+        </React.Fragment>
       ))}
-       <Button variant="ghost" onClick={openCommandPalette}>...</Button>
     </div>
   );
 };
@@ -121,12 +127,13 @@ const TabContentRenderer = ({ tab, editor, onAddChapter }: { tab: TabName, edito
 const EditorToolbar = ({ editor, onAddChapter }: { editor: Editor | null, onAddChapter: () => void }) => {
   const [activeTab, setActiveTab] = useState<TabName>('home');
 
-  const tabs: { name: TabName, icon: React.ElementType }[] = [
+  const tabs: { name: TabName; icon: LucideIcon }[] = [
     { name: 'home', icon: Home },
     { name: 'insert', icon: SquarePlus },
     { name: 'layout', icon: Layout },
     { name: 'review', icon: BookOpen },
     { name: 'ai', icon: Bot },
+    { name: 'plugins', icon: BookUser },
     { name: 'view', icon: Maximize },
   ];
 
@@ -136,13 +143,13 @@ const EditorToolbar = ({ editor, onAddChapter }: { editor: Editor | null, onAddC
         {tabs.map(({ name, icon: Icon }) => (
           <Button
             key={name}
-            variant={activeTab === name ? 'secondary' : 'ghost'}
-            className="rounded-none border-b-2 border-transparent data-[active=true]:border-primary"
+            variant="ghost"
+            className="rounded-b-none border-b-2 h-auto pb-1.5 pt-1 border-transparent data-[active=true]:border-primary data-[active=true]:text-primary data-[active=true]:bg-primary/10"
             data-active={activeTab === name}
             onClick={() => setActiveTab(name)}
           >
             <Icon className="mr-2 h-4 w-4" />
-            <span className="capitalize">{name}</span>
+            <span className="capitalize text-sm">{name}</span>
           </Button>
         ))}
       </div>

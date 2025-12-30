@@ -6,36 +6,7 @@ import { searchFeatures } from '@/engine/search/useFeatureSearch';
 import type { Feature } from '@/engine/features/FeatureRegistry';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { registerFeature } from '@/engine/features/FeatureRegistry';
-
-// This state should be managed globally, e.g., via Zustand or Jotai
-// For simplicity here, we'll use a simple event emitter.
-const paletteState = {
-  isOpen: false,
-  listeners: new Set<(isOpen: boolean) => void>(),
-  toggle() {
-    this.isOpen = !this.isOpen;
-    this.listeners.forEach(cb => cb(this.isOpen));
-  },
-  subscribe(cb: (isOpen: boolean) => void) {
-    this.listeners.add(cb);
-    return () => this.listeners.delete(cb);
-  }
-};
-
-// Global action to open the palette
-export const openCommandPalette = () => paletteState.toggle();
-
-// Register a command to open the command palette itself
-registerFeature({
-  id: 'core.openCommands',
-  title: 'Open Command Palette',
-  keywords: ['command', 'palette', 'search', 'action'],
-  shortcut: 'Ctrl+K',
-  action: openCommandPalette,
-  tab: 'view'
-});
-
+import paletteState from './palette-state';
 
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,6 +14,7 @@ export function CommandPalette() {
   const [filteredFeatures, setFilteredFeatures] = useState<Feature[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // Subscribe to the global state manager
   useEffect(() => {
     return paletteState.subscribe(setIsOpen);
   }, []);
@@ -55,8 +27,8 @@ export function CommandPalette() {
         e.preventDefault();
         paletteState.toggle();
       }
-      if (e.key === 'Escape') {
-        setIsOpen(false);
+      if (e.key === 'Escape' && paletteState.isOpen) {
+        paletteState.toggle();
       }
     };
     window.addEventListener('keydown', handler);
@@ -77,7 +49,7 @@ export function CommandPalette() {
 
   const handleAction = (action: () => void) => {
     action();
-    setIsOpen(false);
+    paletteState.toggle(); // Close palette after action
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -101,7 +73,7 @@ export function CommandPalette() {
   return (
     <div 
       className="fixed inset-0 bg-black/60 z-50 flex justify-center items-start pt-32 backdrop-blur-sm"
-      onClick={() => setIsOpen(false)}
+      onClick={() => paletteState.toggle()}
     >
       <div 
         className="bg-card w-[640px] rounded-xl shadow-2xl border border-border"

@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound, useParams, useRouter } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -118,6 +117,7 @@ export default function AuthorStudioPage() {
         }
         finishLoading();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cancelled, loading, book, chapters]);
   
   if (!loading && (!book || book.authorId !== user?.uid)) {

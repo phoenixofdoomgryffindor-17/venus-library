@@ -95,8 +95,11 @@ export type Feature = {
   id: string;
   title: string;
   keywords?: string[];
+  description?: string;
   icon?: string;
   shortcut?: string;
-  tab: 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'view';
+  group?: string;
+  canBeDisabled?: boolean;
+  tab: 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';
   action: (editor?: Editor | null) => void;
 };
