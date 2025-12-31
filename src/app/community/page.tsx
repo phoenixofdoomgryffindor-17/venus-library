@@ -6,7 +6,7 @@ import { Users, MessageSquare, BookHeart, PlusCircle, ThumbsUp, MessageCircle } 
 import { Header } from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
 
 const forumTopics = [
     {
@@ -63,29 +63,31 @@ export default function CommunityPage() {
                                     <ul className="divide-y divide-border">
                                         {forumTopics.map(topic => (
                                             <li key={topic.id} className="p-6 hover:bg-muted/30 transition-colors">
-                                                <div className="flex items-start gap-4">
-                                                    <Avatar>
-                                                        <AvatarImage src={topic.authorAvatar} />
-                                                        <AvatarFallback>{topic.author.charAt(0)}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="flex-1">
-                                                        <p className="text-xs text-primary font-semibold">{topic.category}</p>
-                                                        <h3 className="font-semibold text-lg text-foreground hover:text-primary cursor-pointer">{topic.title}</h3>
-                                                        <p className="text-sm text-muted-foreground mt-1">
-                                                            Started by {topic.author}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-6 text-muted-foreground text-sm mt-1">
-                                                         <div className="flex items-center gap-2">
-                                                            <ThumbsUp className="h-4 w-4" />
-                                                            <span>{topic.likes}</span>
+                                                <Link href={`/community/topic/${topic.id}`} className="block">
+                                                    <div className="flex items-start gap-4">
+                                                        <Avatar>
+                                                            <AvatarImage src={topic.authorAvatar} />
+                                                            <AvatarFallback>{topic.author.charAt(0)}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div className="flex-1">
+                                                            <p className="text-xs text-primary font-semibold">{topic.category}</p>
+                                                            <h3 className="font-semibold text-lg text-foreground group-hover:text-primary">{topic.title}</h3>
+                                                            <p className="text-sm text-muted-foreground mt-1">
+                                                                Started by {topic.author}
+                                                            </p>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <MessageCircle className="h-4 w-4" />
-                                                            <span>{topic.comments}</span>
+                                                        <div className="flex items-center gap-6 text-muted-foreground text-sm mt-1">
+                                                             <div className="flex items-center gap-2">
+                                                                <ThumbsUp className="h-4 w-4" />
+                                                                <span>{topic.likes}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <MessageCircle className="h-4 w-4" />
+                                                                <span>{topic.comments}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </Link>
                                             </li>
                                         ))}
                                     </ul>
@@ -105,7 +107,9 @@ export default function CommunityPage() {
                                     <p>Join a book club or start your own! A great way to discover new books and make friends.</p>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button variant="outline" className="w-full">Browse Clubs</Button>
+                                    <Button variant="outline" className="w-full" asChild>
+                                        <Link href="/clubs">Browse Clubs</Link>
+                                    </Button>
                                 </CardFooter>
                             </Card>
                             <Card>
@@ -120,7 +124,7 @@ export default function CommunityPage() {
                                 </CardContent>
                                  <CardFooter>
                                     <Button variant="outline" className="w-full">Find a Group</Button>
-                                </CardFooter>
+                                 </CardFooter>
                             </Card>
                         </div>
                     </div>

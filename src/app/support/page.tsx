@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, HelpCircle, BookUser, Settings, ShieldQuestion } from "lucide-react";
 import { Header } from "@/components/header";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function SupportPage() {
     return (
@@ -23,9 +24,9 @@ export default function SupportPage() {
                         <p className="text-xl text-foreground/80 max-w-2xl mx-auto">We're here to help. Find answers to common questions or get in touch with our support team.</p>
                     </section>
 
-                    <div className="grid md:grid-cols-2 gap-12 items-start">
-                        <div className="space-y-8">
-                            <div className="flex items-center gap-3">
+                    <div className="space-y-16">
+                        <section className="max-w-4xl mx-auto">
+                            <div className="flex items-center gap-3 mb-8">
                                 <HelpCircle className="w-8 h-8 text-primary" />
                                 <h2 className="font-headline text-4xl font-semibold">Frequently Asked Questions</h2>
                             </div>
@@ -39,7 +40,7 @@ export default function SupportPage() {
                                 <AccordionItem value="item-2">
                                     <AccordionTrigger className="hover:no-underline text-left text-xl font-medium"><Settings className="mr-3 text-primary"/>Can I change my username or email?</AccordionTrigger>
                                     <AccordionContent className="text-base text-foreground/80 pl-10">
-                                        You can change your public display name at any time from your Profile Settings. However, your core username and the email address associated with your account cannot be changed for security reasons.
+                                        You can change your public display name at any time from your Profile Settings. However, the email address associated with your account cannot be changed for security reasons.
                                     </AccordionContent>
                                 </AccordionItem>
                                 <AccordionItem value="item-3">
@@ -49,39 +50,43 @@ export default function SupportPage() {
                                     </AccordionContent>
                                 </AccordionItem>
                             </Accordion>
-                        </div>
+                        </section>
+                        
+                        <Separator />
 
-                        <Card className="bg-card/50 sticky top-24">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-3">
-                                    <Mail className="w-8 h-8 text-primary" />
-                                    <span className="font-headline text-4xl font-semibold">Contact Us</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form className="space-y-4">
-                                    <div className="grid sm:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="name">Your Name</Label>
-                                            <Input id="name" placeholder="John Doe" className="bg-background"/>
+                        <section className="max-w-4xl mx-auto">
+                            <Card className="bg-card/50">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-3">
+                                        <Mail className="w-8 h-8 text-primary" />
+                                        <span className="font-headline text-4xl font-semibold">Contact Us</span>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <form className="space-y-4">
+                                        <div className="grid sm:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="name">Your Name</Label>
+                                                <Input id="name" placeholder="John Doe" className="bg-background"/>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="email">Your Email</Label>
+                                                <Input id="email" type="email" placeholder="john.d@example.com" className="bg-background"/>
+                                            </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email">Your Email</Label>
-                                            <Input id="email" type="email" placeholder="john.d@example.com" className="bg-background"/>
+                                         <div className="space-y-2">
+                                            <Label htmlFor="subject">Subject</Label>
+                                            <Input id="subject" placeholder="e.g., Issue with book publishing" className="bg-background"/>
                                         </div>
-                                    </div>
-                                     <div className="space-y-2">
-                                        <Label htmlFor="subject">Subject</Label>
-                                        <Input id="subject" placeholder="e.g., Issue with book publishing" className="bg-background"/>
-                                    </div>
-                                     <div className="space-y-2">
-                                        <Label htmlFor="message">How can we help you?</Label>
-                                        <Textarea id="message" placeholder="Please describe your issue in detail..." className="bg-background min-h-[120px]"/>
-                                    </div>
-                                    <Button className="w-full h-12 text-lg font-bold">Send Message</Button>
-                                </form>
-                            </CardContent>
-                        </Card>
+                                         <div className="space-y-2">
+                                            <Label htmlFor="message">How can we help you?</Label>
+                                            <Textarea id="message" placeholder="Please describe your issue in detail..." className="bg-background min-h-[120px]"/>
+                                        </div>
+                                        <Button className="w-full h-12 text-lg font-bold">Send Message</Button>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        </section>
                     </div>
                 </main>
             </>
