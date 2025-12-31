@@ -122,7 +122,7 @@ const TabContentRenderer = ({ tab, context }: { tab: TabName, context: CommandCo
 
 
   return (
-    <div className="flex items-center justify-center h-full p-2 gap-1">
+    <div className="flex items-center h-full p-2 gap-1">
       {tab === 'home' && (
           <>
             <FontStyleDropdown context={context} />

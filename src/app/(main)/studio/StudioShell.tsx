@@ -5,7 +5,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Book, Chapter, CommandContext } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, ArrowLeft, Undo, Redo, Search, PanelLeft, PanelLeftClose } from 'lucide-react';
+import { Loader2, Check, ArrowLeft, Undo, Redo, Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
@@ -27,6 +27,10 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import TextStyle from '@tiptap/extension-text-style';
 import CharacterCount from '@tiptap/extension-character-count';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import { openCommandPalette } from '@/lib/palette-state';
 import { StatusBar } from './StatusBar';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -156,15 +160,19 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        characterCount: false, // Disable StarterKit's character count to use our own instance
-      }),
+      StarterKit,
       Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
       TextStyle,
-      CharacterCount.configure(), // Add the extension here
+      CharacterCount,
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: activeChapter?.content || '',
     onUpdate: ({ editor }) => {
