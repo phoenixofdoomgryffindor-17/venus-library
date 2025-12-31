@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import type { Book } from '@/lib/types';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection, query, serverTimestamp, doc, getDocs, setDoc, deleteDoc, where, updateDoc } from 'firebase/firestore';
+import { collection, query, serverTimestamp, doc, getDocs, setDoc, deleteDoc, where, updateDoc, limit, startAfter, orderBy, DocumentSnapshot } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   Table,
@@ -53,6 +53,7 @@ import { useToast } from '@/hooks/use-toast';
 import { critiqueBook } from '@/ai/flows/critique-book';
 import EditButton from '@/components/EditButton';
 import { useRouter } from 'next/navigation';
+import { usePaginatedAuthorBooks } from '@/hooks/use-paginated-author-books';
 
 const createSlug = (title: string) => {
     if (!title) {
@@ -74,20 +75,15 @@ export default function AuthorDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  
+  const { books, loading: booksLoading, hasMore, loadMore, loadingMore } = usePaginatedAuthorBooks(user?.uid);
+  
   const [critiqueLoading, setCritiqueLoading] = useState<string | null>(null);
   const [isCreateBookOpen, setCreateBookOpen] = useState(false);
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookGenre, setNewBookGenre] = useState('');
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
-
-
-  const authorBooksQuery = useMemoFirebase(
-    () => (firestore && user ? query(collection(firestore, 'books'), where('authorId', '==', user.uid)) : null),
-    [firestore, user]
-  );
-  
-  const { data: authorBooks, isLoading: booksLoading } = useCollection<Book>(authorBooksQuery);
   
   const handleCreateBook = async () => {
     if (!user || !firestore) {
@@ -105,8 +101,7 @@ export default function AuthorDashboard() {
     try {
         const bookDocRef = doc(collection(firestore, 'books'));
         
-        await setDoc(bookDocRef, {
-            id: bookDocRef.id,
+        const newBookData: Omit<Book, 'id'> = {
             authorId: user.uid,
             title: newBookTitle,
             slug: newSlug,
@@ -117,10 +112,15 @@ export default function AuthorDashboard() {
             price: 0,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
+        };
+
+        await setDoc(bookDocRef, {
+            ...newBookData,
+            id: bookDocRef.id,
         });
         
         const chaptersColRef = collection(firestore, `books/${bookDocRef.id}/chapters`);
-        await addDocumentNonBlocking(chaptersColRef, {
+        await addDoc(chaptersColRef, {
           title: 'Chapter 1',
           order: 1,
           content: 'Start writing your first chapter here...',
@@ -133,6 +133,9 @@ export default function AuthorDashboard() {
         setNewBookGenre('');
         setCreateBookOpen(false);
         toast({ title: "Book Created!", description: `"${newBookTitle}" has been added to your studio.` });
+        // Instead of reloading, we should ideally optimistically update the UI.
+        // For simplicity, a refresh is used here.
+        router.refresh();
     } catch(e: any) {
         toast({ title: 'Error creating book', description: e.message, variant: 'destructive' });
     }
@@ -212,7 +215,7 @@ export default function AuthorDashboard() {
     }
   }
 
-  const loading = userLoading || booksLoading;
+  const loading = userLoading || (booksLoading && books.length === 0);
 
   if (loading) {
     return (
@@ -278,7 +281,7 @@ export default function AuthorDashboard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {authorBooks && authorBooks.map(book => (
+            {books && books.map(book => (
               <TableRow key={book.id}>
                 <TableCell>{book.title}</TableCell>
                 <TableCell>
@@ -332,6 +335,13 @@ export default function AuthorDashboard() {
             ))}
           </TableBody>
         </Table>
+        {hasMore && (
+            <div className="p-4 text-center">
+                <Button onClick={loadMore} disabled={loadingMore}>
+                    {loadingMore ? <Loader2 className="animate-spin" /> : 'Load More'}
+                </Button>
+            </div>
+        )}
       </div>
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -353,5 +363,3 @@ export default function AuthorDashboard() {
     </>
   );
 }
-
-    

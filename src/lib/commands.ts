@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Editor } from '@tiptap/react';
@@ -335,11 +336,11 @@ registerCommand({
   run: () => alert('Toggling Zen Mode'),
 });
 registerCommand({
-  id: 'view.toggle_ruler',
-  title: 'Toggle Ruler',
-  icon: 'Ruler',
+  id: 'view.toggle_sidebar',
+  title: 'Toggle Sidebar',
+  icon: 'PanelLeft',
   tab: 'view',
-  run: () => alert('Toggle Ruler'),
+  run: ({ toggleSidebar }) => toggleSidebar(),
 });
 
 

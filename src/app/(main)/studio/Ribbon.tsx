@@ -13,10 +13,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Wand2, BookOpen } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { Wand2 } from 'lucide-react';
 
 type TabName = 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';
 
@@ -164,6 +163,9 @@ export default function Ribbon({ commandContext }: { commandContext: CommandCont
   return (
     <div className="h-[96px] p-2 border-b bg-card border-border flex-shrink-0 flex flex-col">
       <div className="flex items-center justify-center border-b">
+        <Button variant="ghost" className="absolute left-4 top-[56px] h-8 w-8 p-0" onClick={commandContext.toggleSidebar}>
+            <BookOpen />
+        </Button>
         {TABS.map(({ name, icon: Icon }) => (
           <Button
             key={name}

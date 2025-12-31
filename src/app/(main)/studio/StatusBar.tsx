@@ -1,8 +1,8 @@
 
 'use client';
 import { Button } from "@/components/ui/button";
-import { Wand2 } from "lucide-react";
-import { openCommandPalette } from "./CmdPalette";
+import { Search } from "lucide-react";
+import { openCommandPalette } from "@/lib/palette-state";
 
 interface StatusBarProps {
     pageNumber: number;
@@ -17,14 +17,15 @@ export function StatusBar({ pageNumber, totalPages, wordCount, charCount }: Stat
             <div className="flex items-center gap-2">
                 <span>Page {pageNumber} of {totalPages}</span>
             </div>
+            <div className="flex-1" />
             <div className="flex gap-4">
                 <span>{wordCount} words</span>
                 <span>{charCount} characters</span>
             </div>
-            <div className="flex items-center gap-2">
+             <div className="flex-1 flex justify-end">
                 <Button variant="ghost" size="sm" className="h-auto py-0.5" onClick={openCommandPalette}>
-                    <Wand2 className="mr-2 h-3 w-3" />
-                    AI Ready
+                    <Search className="mr-2 h-3 w-3" />
+                    Commands...
                 </Button>
             </div>
         </footer>

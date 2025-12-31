@@ -96,6 +96,7 @@ export interface CommandContext {
   editor: Editor | null;
   book: Book;
   activeChapter: Chapter;
+  toggleSidebar: () => void;
 }
 
 // Defines a command that can be run from the palette or a button
