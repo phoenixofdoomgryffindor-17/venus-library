@@ -127,8 +127,6 @@ export default function AuthorDashboard() {
           order: 1,
           content: '<p>Start writing your first chapter here...</p>',
           wordCount: 6,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
         });
 
         setNewBookTitle('');
