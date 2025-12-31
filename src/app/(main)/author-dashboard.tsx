@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -96,13 +95,13 @@ export default function AuthorDashboard() {
         toast({ title: "Missing Information", description: "Please provide a title and genre.", variant: "destructive" });
         return;
     }
-    toast({ title: "Creating Book & Generating Cover..." });
+    toast({ title: "Creating Book..." });
     
     const newSlug = createSlug(newBookTitle);
+    const placeholderCoverUrl = `https://picsum.photos/seed/${newSlug}/600/800`;
 
     try {
         const bookDocRef = doc(collection(firestore, 'books'));
-        const coverResponse = await generateBookCover({prompt: `A professional, trending book cover for a ${newBookGenre} book titled "${newBookTitle}"`});
         
         const newBookData: Omit<Book, 'id'> = {
             authorId: user.uid,
@@ -110,7 +109,7 @@ export default function AuthorDashboard() {
             slug: newSlug,
             description: '',
             genre: newBookGenre,
-            coverUrl: coverResponse.coverDataUri,
+            coverUrl: placeholderCoverUrl, // Use placeholder image
             status: 'draft',
             price: 0,
             createdAt: serverTimestamp(),
@@ -233,7 +232,7 @@ export default function AuthorDashboard() {
                 <DialogHeader>
                     <DialogTitle>Create a New Book</DialogTitle>
                     <DialogDescription>
-                        Give your new book a title and a genre to get started. The AI will generate a cover for you.
+                        Give your new book a title and a genre to get started. A placeholder cover will be generated for you.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
