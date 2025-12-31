@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '@/components/icons';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from './ui/button';
-import { Menu, Home, PenSquare, Info, Users, LifeBuoy, BookOpenCheck, Settings, LogOut, User as UserIcon } from 'lucide-react';
+import { Menu, Home, PenSquare, Info, Users, LifeBuoy, BookOpenCheck, Settings, LogOut, User as UserIcon, BookUser } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { UserBar } from './user-bar';
@@ -17,8 +17,9 @@ import { useHeader } from '@/hooks/use-header';
 const navItems = [
     { href: '/home', icon: Home, label: 'Home' },
     { href: '/write', icon: PenSquare, label: 'Write' },
-    { href: '/about', icon: Info, label: 'About' },
+    { href: '/clubs', icon: BookUser, label: 'Clubs' },
     { href: '/community', icon: Users, label: 'Community' },
+    { href: '/about', icon: Info, label: 'About' },
     { href: '/support', icon: LifeBuoy, label: 'Support' },
     { href: '/review', icon: BookOpenCheck, label: 'Review/Feedback' },
 ];
@@ -122,5 +123,3 @@ export function Header() {
     </header>
   );
 }
-
-    
