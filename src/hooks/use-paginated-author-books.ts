@@ -29,10 +29,11 @@ export function usePaginatedAuthorBooks(authorId?: string) {
     }
 
     try {
+      // WORKAROUND: Removed orderBy('updatedAt', 'desc') to avoid needing a composite index.
+      // This means books will not be sorted by last updated time.
       let q = query(
         collection(firestore, 'books'),
         where('authorId', '==', authorId),
-        orderBy('updatedAt', 'desc'),
         limit(PAGE_SIZE)
       );
 
