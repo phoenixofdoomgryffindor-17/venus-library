@@ -17,10 +17,14 @@ export default function MainLayout({
 }) {
   // A dummy context for the global command palette.
   // In a real app, this might be populated by a global state manager (e.g., Zustand, Redux)
+  // CRITICAL FIX: This context MUST NOT initialize a `useEditor` hook.
+  // Doing so creates an editor instance without extensions, causing a fatal 'doc' node error.
+  // `null` is the correct placeholder for a global context with no active editor.
   const dummyContext = useMemo((): CommandContext => ({
     editor: null, // Use null, as there is no global editor instance.
     book: { id: '', authorId: '', title: '', slug: '', description: '', genre: '', coverUrl: '', status: 'draft', price: 0, createdAt: '', updatedAt: '' },
     activeChapter: { id: '', bookId: '', title: '', content: '', order: 0, wordCount: 0 },
+    toggleSidebar: () => {}, // Provide a no-op function for the dummy context
   }), []);
 
   return (

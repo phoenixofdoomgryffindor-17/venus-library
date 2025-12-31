@@ -20,19 +20,15 @@ import { Textarea } from '@/components/ui/textarea';
 type TabName = 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';
 
 const FONT_STYLES = [
-    { name: 'Sans Serif', value: 'sans-serif' },
-    { name: 'Serif', value: 'serif' },
+    { name: 'Sans Serif', value: 'var(--font-inter), sans-serif' },
+    { name: 'Serif', value: 'var(--font-playfair), serif' },
     { name: 'Monospace', value: 'monospace' },
 ];
 
 const ToolbarButton = ({ command, context }: { command: Command, context: CommandContext }) => {
   const Icon = getCommandIcon(command.icon);
-
-  if (!Icon) {
-    console.warn(`Icon not found for command: ${command.icon}`);
-    return null;
-  }
   
+  const canRun = command.canRun ? command.canRun(context) : !!context.editor;
   const isActive = command.isActive ? command.isActive(context) : false;
 
   return (
@@ -44,7 +40,7 @@ const ToolbarButton = ({ command, context }: { command: Command, context: Comman
             size="icon"
             className="h-8 w-8 p-1.5"
             onClick={() => command.run(context)}
-            disabled={command.canRun ? !command.canRun(context) : !context.editor}
+            disabled={!canRun}
           >
             <Icon />
           </Button>
@@ -61,7 +57,7 @@ const ToolbarButton = ({ command, context }: { command: Command, context: Comman
 const FontStyleDropdown = ({ context }: { context: CommandContext }) => {
     if (!context.editor) return null;
 
-    const currentFont = context.editor.getAttributes('textStyle').fontFamily || 'sans-serif';
+    const currentFont = context.editor.getAttributes('textStyle').fontFamily || FONT_STYLES[0].value;
     
     return (
         <DropdownMenu>

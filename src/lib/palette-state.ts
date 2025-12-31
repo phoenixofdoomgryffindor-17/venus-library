@@ -1,3 +1,4 @@
+
 'use client';
 
 // This simple event emitter manages the global state of the command palette.

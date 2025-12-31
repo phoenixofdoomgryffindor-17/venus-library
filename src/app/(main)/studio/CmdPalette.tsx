@@ -20,13 +20,15 @@ export default function CmdPalette({ context }: CmdPaletteProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    return paletteState.subscribe(setIsOpen);
+    // Subscribe to the global palette state
+    const unsubscribe = paletteState.subscribe(setIsOpen);
+    return () => unsubscribe();
   }, []);
   
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().includes('MAC');
-      if ((isMac ? e.metaKey : e.ctrlKey) && e.shiftKey && e.key === 'P') {
+      // Use `e.key` for modern browsers, and check for `P` not `p`
+      if (e.key === 'P' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
         e.preventDefault();
         openCommandPalette();
       }
@@ -46,13 +48,14 @@ export default function CmdPalette({ context }: CmdPaletteProps) {
   }, [isOpen]);
 
   useEffect(() => {
+    // Search commands based on the current context (editor, etc.)
     setFilteredCommands(searchCommands(searchTerm, context));
     setActiveIndex(0);
-  }, [searchTerm, context]);
+  }, [searchTerm, context, isOpen]);
 
   const handleAction = useCallback((command: Command) => {
     command.run(context);
-    openCommandPalette();
+    openCommandPalette(); // Close palette after running command
   }, [context]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {

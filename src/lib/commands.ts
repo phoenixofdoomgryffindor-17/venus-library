@@ -65,43 +65,6 @@ registerCommand({
 });
 
 registerCommand({
-  id: 'format.font.decrease',
-  title: 'Decrease Font Size',
-  icon: 'Minus',
-  tab: 'home',
-  group: 'font',
-  run: ({ editor }) => {
-    // This is a placeholder for a more complex font size logic
-    for (let i = 2; i <= 6; i++) {
-        if (editor?.isActive('heading', { level: i })) {
-            editor?.chain().focus().toggleHeading({ level: (i+1) as any }).run();
-            return;
-        }
-    }
-    if (editor?.isActive('paragraph')) {
-        editor?.chain().focus().toggleHeading({ level: 6 }).run();
-    }
-  },
-});
-
-registerCommand({
-  id: 'format.font.increase',
-  title: 'Increase Font Size',
-  icon: 'Plus',
-  tab: 'home',
-  group: 'font',
-  run: ({ editor }) => {
-    for (let i = 6; i >= 1; i--) {
-        if (editor?.isActive('heading', { level: i })) {
-            editor?.chain().focus().toggleHeading({ level: (i-1) as any }).run();
-            return;
-        }
-    }
-    editor?.chain().focus().setParagraph().run();
-  },
-});
-
-registerCommand({
   id: 'format.bold',
   title: 'Bold',
   icon: 'Bold',
@@ -406,15 +369,27 @@ initializeFuse(); // Initial indexing
 export function searchCommands(query: string, context: CommandContext): Command[] {
   if (!fuse) initializeFuse();
   
+  // Filter commands based on whether they can be run in the current context
   const allCommands = getAllCommands();
-
-  const availableCommands = allCommands.filter(c => c.canRun ? c.canRun(context) : true);
+  const availableCommands = allCommands.filter(c => {
+    if (c.id === 'cmd.open_palette') return false; // Don't show the open palette command within the palette
+    if (c.canRun) {
+      return c.canRun(context);
+    }
+    // If canRun is not defined, default to requiring an editor for most commands
+    if (c.tab && c.tab !== 'view' && c.tab !== 'plugins') {
+      return !!context.editor;
+    }
+    return true;
+  });
 
   if (!query.trim()) {
-      return availableCommands.slice(0, 20);
+      return availableCommands.slice(0, 20); // Return a default list
   }
+  
+  // Update fuse instance with only available commands for searching
+  fuse.setCollection(availableCommands);
 
   return fuse.search(query)
     .map(result => result.item)
-    .filter(c => c.canRun ? c.canRun(context) : true);
 }
