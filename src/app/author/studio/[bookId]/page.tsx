@@ -8,16 +8,10 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import type { Book, Chapter } from '@/lib/types';
-import AuthorStudio from '@/components/author-studio';
+import StudioShell from '@/app/(main)/studio/StudioShell';
 import '@/styles/editor-loader.css';
 
-type Stage =
-  | 'boot'
-  | 'firebase'
-  | 'document'
-  | 'editor'
-  | 'ui'
-  | 'done';
+type Stage = 'boot' | 'firebase' | 'document' | 'editor' | 'ui' | 'done';
 
 const STAGE_PROGRESS: Record<Stage, number> = {
   boot: 5,
@@ -76,16 +70,20 @@ export default function AuthorStudioPage() {
     () => (firestore && bookId ? doc(firestore, 'books', bookId) : null),
     [firestore, bookId]
   );
-  
+
   const chaptersQuery = useMemoFirebase(
-    () => (firestore && bookId ? query(collection(firestore, 'books', bookId, 'chapters'), orderBy('order')) : null),
+    () =>
+      firestore && bookId
+        ? query(collection(firestore, 'books', bookId, 'chapters'), orderBy('order'))
+        : null,
     [firestore, bookId]
   );
 
   const { data: book, isLoading: bookLoading } = useDoc<Book>(bookRef);
-  const { data: chapters, isLoading: chaptersLoading } = useCollection<Chapter>(chaptersQuery);
+  const { data: chapters, isLoading: chaptersLoading } =
+    useCollection<Chapter>(chaptersQuery);
   const loading = userLoading || bookLoading || chaptersLoading;
-  
+
   useEffect(() => {
     const target = STAGE_PROGRESS[stage];
     const id = setInterval(() => {
@@ -98,51 +96,48 @@ export default function AuthorStudioPage() {
     if (cancelled) return;
 
     if (loading) {
-        setStage("firebase");
-        return;
+      setStage('firebase');
+      return;
     }
 
     if (book && chapters) {
-        setStage("document");
-        // Simulate editor and UI loading after data is fetched
-        const finishLoading = async () => {
-            await wait(400);
-            if (cancelled) return;
-            setStage("editor");
-            await wait(400);
-            if (cancelled) return;
-            setStage("ui");
-            await wait(200);
-            setStage("done");
-            setTimeout(() => setReady(true), 500);
-        }
-        finishLoading();
+      setStage('document');
+      // Simulate editor and UI loading after data is fetched
+      const finishLoading = async () => {
+        await wait(400);
+        if (cancelled) return;
+        setStage('editor');
+        await wait(400);
+        if (cancelled) return;
+        setStage('ui');
+        await wait(200);
+        setStage('done');
+        setTimeout(() => setReady(true), 500);
+      };
+      finishLoading();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cancelled, loading, book, chapters]);
-  
+
   if (!loading && (!book || book.authorId !== user?.uid)) {
     notFound();
   }
-  
+
   return (
     <>
       {!ready && !cancelled && (
         <EditorLoader
           progress={progress}
-          done={stage === "done"}
+          done={stage === 'done'}
           onCancel={() => {
-              setCancelled(true);
-              router.back();
+            setCancelled(true);
+            router.back();
           }}
         />
       )}
 
       {ready && !cancelled && book && chapters && (
-         <AuthorStudio
-            book={book}
-            initialChapters={chapters}
-         />
+        <StudioShell book={book} initialChapters={chapters} />
       )}
     </>
   );

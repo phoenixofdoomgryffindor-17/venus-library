@@ -91,15 +91,26 @@ export type AIJob = {
   createdAt: string;
 }
 
-export type Feature = {
+// Context object passed to every command
+export interface CommandContext {
+  editor: Editor | null;
+  book: Book;
+  activeChapter: Chapter;
+}
+
+// Defines a command that can be run from the palette or a button
+export type Command = {
   id: string;
   title: string;
-  keywords?: string[];
   description?: string;
-  icon?: string;
+  keywords?: string[];
+  icon?: string; // Lucide icon name
   shortcut?: string;
+  tab?: 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';
   group?: string;
-  canBeDisabled?: boolean;
-  tab: 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';
-  action: (editor?: Editor | null) => void;
+  run: (context: CommandContext) => void;
+  // Optional: Check if the command can be run in the current context
+  canRun?: (context: CommandContext) => boolean;
+  // Optional: Check if the command is currently "active" (e.g., Bold is on)
+  isActive?: (context: CommandContext) => boolean;
 };

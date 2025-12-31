@@ -3,9 +3,9 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Book, Chapter } from '@/lib/types';
+import type { Book, Chapter, Command, CommandContext } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, ArrowLeft, Undo, Redo, ChevronLeft, ChevronRight, Wand2, Search } from 'lucide-react';
+import { Loader2, Check, ArrowLeft, Undo, Redo, Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
@@ -18,17 +18,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import EditorToolbar from './editor-toolbar';
-import { Logo } from './icons';
-import { EditorCanvas } from './editor/EditorCanvas';
+import { Logo } from '@/components/icons';
+import EditorSurface from './EditorSurface';
+import Ribbon from './Ribbon';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import TextStyle from '@tiptap/extension-text-style';
-import { openCommandPalette } from './command/palette-state';
+import { openCommandPalette } from './CmdPalette';
+import { StatusBar } from './StatusBar';
 
-interface AuthorStudioProps {
+interface StudioShellProps {
   book: Book;
   initialChapters: Chapter[];
 }
@@ -43,7 +44,7 @@ const createSlug = (title: string) => {
     .trim();
 };
 
-const GlobalNav = ({ book, onExit, saveStatus, editor }: { book: Book, onExit: () => void, saveStatus: 'saved' | 'saving' | 'unsaved', editor: any }) => {
+const TopBar = ({ book, onExit, saveStatus, editor }: { book: Book, onExit: () => void, saveStatus: 'saved' | 'saving' | 'unsaved', editor: any }) => {
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [editableTitle, setEditableTitle] = useState(book.title);
   const firestore = useFirestore();
@@ -115,12 +116,12 @@ const GlobalNav = ({ book, onExit, saveStatus, editor }: { book: Book, onExit: (
   )
 }
 
-export default function AuthorStudio({ book, initialChapters }: AuthorStudioProps) {
+export default function StudioShell({ book, initialChapters }: StudioShellProps) {
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
+  const [chapters, setChapters] = useState<Chapter[]>(initialChapters.length > 0 ? initialChapters : [{ id: 'new', bookId: book.id, title: 'Chapter 1', content: '', order: 1, wordCount: 0 }]);
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   
   const activeChapter = useMemo(() => chapters[activeChapterIndex], [chapters, activeChapterIndex]);
@@ -130,7 +131,9 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
 
   const editor = useEditor({
     extensions: [
-        StarterKit,
+        StarterKit.configure({
+          history: true, // Enables undo/redo
+        }),
         Underline,
         TextAlign.configure({
             types: ['heading', 'paragraph'],
@@ -153,7 +156,7 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
   }, [editor?.state]);
 
   const handleSaveContent = useCallback(async () => {
-    if (!activeChapter || !book || !editor) return;
+    if (!activeChapter || !book || !editor || saveStatus !== 'unsaved') return;
     setSaveStatus('saving');
     const content = editor.getHTML();
     
@@ -167,10 +170,7 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
         
         setChapters(prev => {
             const newChapters = [...prev];
-            const currentChapter = newChapters[activeChapterIndex];
-            if (currentChapter) {
-                newChapters[activeChapterIndex] = { ...currentChapter, content, wordCount };
-            }
+            newChapters[activeChapterIndex] = { ...newChapters[activeChapterIndex], content, wordCount };
             return newChapters;
         });
 
@@ -179,9 +179,8 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
         setSaveStatus('unsaved');
         toast({ title: 'Error saving', description: e.message, variant: 'destructive' });
     }
-  }, [editor, activeChapter, book, wordCount, firestore, activeChapterIndex, toast]);
-
-  // useEffect to automatically save content after a delay of inactivity
+  }, [editor, activeChapter, book, wordCount, firestore, activeChapterIndex, toast, saveStatus]);
+  
   useEffect(() => {
     if (saveStatus === 'unsaved') {
       const timer = setTimeout(() => {
@@ -191,7 +190,6 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
     }
   }, [saveStatus, handleSaveContent]);
 
-  // When the active chapter changes, update the editor content
   useEffect(() => {
     if (editor && activeChapter) {
         if (editor.getHTML() !== activeChapter.content) {
@@ -201,44 +199,6 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
     }
   }, [activeChapter, editor]);
 
-  const navigatePage = async (direction: 'next' | 'prev') => {
-    if (saveStatus === 'unsaved') {
-        await handleSaveContent();
-    }
-    const newIndex = direction === 'next' ? activeChapterIndex + 1 : activeChapterIndex - 1;
-    if (newIndex >= 0 && newIndex < chapters.length) {
-        setActiveChapterIndex(newIndex);
-    }
-  };
-
-  const handleAddNewChapter = async () => {
-     if (saveStatus === 'unsaved') {
-        await handleSaveContent();
-     }
-     
-     const newOrder = chapters.length > 0 ? Math.max(...chapters.map(c => c.order)) + 1 : 1;
-     const newChapterData = {
-         bookId: book.id,
-         title: `Chapter ${newOrder}`,
-         content: '',
-         order: newOrder,
-         wordCount: 0,
-         createdAt: serverTimestamp(),
-         updatedAt: serverTimestamp(),
-     };
-
-     try {
-        const docRef = await addDoc(collection(firestore, 'books', book.id, 'chapters'), newChapterData);
-        const newChapterWithId = { ...newChapterData, id: docRef.id } as Chapter;
-        
-        setChapters(prev => [...prev, newChapterWithId]);
-        setActiveChapterIndex(chapters.length);
-        toast({ title: "Chapter added" });
-     } catch (e: any) {
-        toast({ title: "Error adding chapter", description: e.message, variant: 'destructive' });
-     }
-  };
-
   const handleExit = async () => {
     if (saveStatus === 'unsaved') {
       setShowExitDialog(true);
@@ -247,34 +207,29 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
     }
   };
 
+  const commandContext = useMemo((): CommandContext => ({
+    editor,
+    book,
+    activeChapter,
+    // Add other context as needed
+  }), [editor, book, activeChapter]);
+
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
-      <GlobalNav book={book} onExit={handleExit} saveStatus={saveStatus} editor={editor} />
-      <EditorToolbar editor={editor} />
-      <main className="flex-1 overflow-y-auto bg-[#181a1f] p-4">
-        <EditorCanvas editor={editor} />
+      <TopBar book={book} onExit={handleExit} saveStatus={saveStatus} editor={editor} />
+      <Ribbon commandContext={commandContext} />
+      
+      <main className="flex-1 overflow-y-auto bg-gray-800 p-4">
+        <EditorSurface editor={editor} />
       </main>
-      <footer className="flex h-[32px] flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigatePage('prev')} disabled={activeChapterIndex === 0}>
-                <ChevronLeft />
-            </Button>
-            <span>Chapter {activeChapterIndex + 1} of {chapters.length}</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigatePage('next')} disabled={activeChapterIndex >= chapters.length - 1}>
-                <ChevronRight />
-            </Button>
-          </div>
-          <div className="flex gap-4">
-              <span>{wordCount} words</span>
-              <span>{charCount} characters</span>
-          </div>
-          <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="h-auto py-0.5" onClick={openCommandPalette}>
-                <Wand2 className="mr-2 h-3 w-3" />
-                AI Ready
-              </Button>
-          </div>
-      </footer>
+
+      <StatusBar
+        wordCount={wordCount}
+        charCount={charCount}
+        pageNumber={activeChapterIndex + 1}
+        totalPages={chapters.length}
+      />
+
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
           <AlertDialogContent>
               <AlertDialogHeader>
@@ -303,3 +258,11 @@ export default function AuthorStudio({ book, initialChapters }: AuthorStudioProp
     </div>
   );
 }
+
+// Dummy StatusBar component for now
+const DummyStatusBar = () => (
+    <footer className="flex h-[32px] flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 text-xs text-muted-foreground">
+        <div>Page 1 of 1</div>
+        <div>0 words</div>
+    </footer>
+)
