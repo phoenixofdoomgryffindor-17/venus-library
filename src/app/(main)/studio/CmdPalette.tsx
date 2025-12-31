@@ -7,22 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import type { CommandContext } from '@/lib/types';
-
-// Simple event emitter for global state management
-type PaletteStateListener = (isOpen: boolean) => void;
-const paletteState = {
-  isOpen: false,
-  listeners: new Set<PaletteStateListener>(),
-  toggle() {
-    this.isOpen = !this.isOpen;
-    this.listeners.forEach(cb => cb(this.isOpen));
-  },
-  subscribe(callback: PaletteStateListener) {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
-  }
-};
-export const openCommandPalette = () => paletteState.toggle();
+import paletteState, { openCommandPalette } from '@/lib/palette-state';
 
 interface CmdPaletteProps {
     context: CommandContext;
@@ -43,10 +28,10 @@ export default function CmdPalette({ context }: CmdPaletteProps) {
       const isMac = navigator.platform.toUpperCase().includes('MAC');
       if ((isMac ? e.metaKey : e.ctrlKey) && e.shiftKey && e.key === 'P') {
         e.preventDefault();
-        paletteState.toggle();
+        openCommandPalette();
       }
       if (e.key === 'Escape' && paletteState.isOpen) {
-        paletteState.toggle();
+        openCommandPalette();
       }
     };
     window.addEventListener('keydown', handler);
@@ -67,7 +52,7 @@ export default function CmdPalette({ context }: CmdPaletteProps) {
 
   const handleAction = useCallback((command: Command) => {
     command.run(context);
-    paletteState.toggle();
+    openCommandPalette();
   }, [context]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -91,7 +76,7 @@ export default function CmdPalette({ context }: CmdPaletteProps) {
   return (
     <div 
       className="fixed inset-0 bg-black/60 z-50 flex justify-center items-start pt-32 backdrop-blur-sm"
-      onClick={() => paletteState.toggle()}
+      onClick={openCommandPalette}
     >
       <div 
         className="bg-card w-[640px] rounded-xl shadow-2xl border border-border"

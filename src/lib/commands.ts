@@ -1,10 +1,11 @@
-
 'use client';
 
-import type { Command, CommandContext } from './types';
+import type { Editor } from '@tiptap/react';
+import type { Command, CommandContext, Book, Chapter } from './types';
 import * as LucideIcons from 'lucide-react';
-import { openCommandPalette } from '@/app/(main)/studio/CmdPalette';
 import Fuse from "fuse.js";
+import { openCommandPalette } from '@/lib/palette-state';
+
 
 type IconName = keyof typeof LucideIcons;
 
@@ -169,8 +170,9 @@ registerCommand({
 registerCommand({
   id: 'insert.image',
   title: 'Image',
-  icon: 'ImageIcon',
+  icon: 'Image',
   tab: 'insert',
+  group: 'media',
   run: () => alert('Feature: Insert Image'),
 });
 registerCommand({
@@ -178,21 +180,102 @@ registerCommand({
   title: 'Table',
   icon: 'Table',
   tab: 'insert',
+  group: 'structure',
   run: () => alert('Feature: Insert Table'),
 });
 registerCommand({
   id: 'insert.divider',
-  title: 'Divider / Page Break',
+  title: 'Divider',
   icon: 'Minus',
   tab: 'insert',
+  group: 'structure',
   run: ({ editor }) => editor?.chain().focus().setHorizontalRule().run(),
+});
+registerCommand({
+  id: 'insert.chapter_break',
+  title: 'Chapter Break',
+  icon: 'BookCopy',
+  tab: 'insert',
+  group: 'structure',
+  run: () => alert('Feature: Insert Chapter Break'),
+});
+registerCommand({
+  id: 'insert.comment',
+  title: 'Comment',
+  icon: 'MessageSquarePlus',
+  tab: 'insert',
+  group: 'inline',
+  run: () => alert('Feature: Insert Comment'),
+});
+registerCommand({
+  id: 'insert.link',
+  title: 'Link',
+  icon: 'Link',
+  tab: 'insert',
+  group: 'inline',
+  run: () => alert('Feature: Insert Link'),
 });
 registerCommand({
   id: 'insert.quote',
   title: 'Quote',
   icon: 'Quote',
   tab: 'insert',
+  group: 'blocks',
   run: ({ editor }) => editor?.chain().focus().toggleBlockquote().run(),
+});
+registerCommand({
+  id: 'insert.codeblock',
+  title: 'Code Block',
+  icon: 'Code',
+  tab: 'insert',
+  group: 'blocks',
+  run: ({ editor }) => editor?.chain().focus().toggleCodeBlock().run(),
+});
+
+
+// --- LAYOUT TAB COMMANDS ---
+registerCommand({
+  id: 'layout.page_size',
+  title: 'Page Size',
+  icon: 'RectangleHorizontal',
+  tab: 'layout',
+  group: 'page',
+  run: () => alert('Feature: Page Size'),
+});
+registerCommand({
+  id: 'layout.margins',
+  title: 'Margins',
+  icon: 'RectangleVertical',
+  tab: 'layout',
+  group: 'page',
+  run: () => alert('Feature: Margins'),
+});
+registerCommand({
+  id: 'layout.focus_mode',
+  title: 'Focus Mode',
+  icon: 'Crosshair',
+  tab: 'layout',
+  group: 'view',
+  run: () => alert('Feature: Focus Mode'),
+});
+
+
+// --- REVIEW TAB COMMANDS ---
+registerCommand({
+  id: 'review.word_count',
+  title: 'Word Count',
+  icon: 'Scan',
+  tab: 'review',
+  group: 'stats',
+  run: () => alert('Feature: Word Count'),
+});
+registerCommand({
+  id: 'review.comments_panel',
+  title: 'Comments',
+  icon: 'MessagesSquare',
+  tab: 'review',
+  group: 'feedback',
+  run: () => alert('Feature: Comments Panel'),
 });
 
 // --- AI TAB COMMANDS ---
@@ -212,6 +295,23 @@ registerCommand({
   description: 'The AI will generate a summary of the current chapter.',
   run: () => alert('AI: Summarize action triggered'),
 });
+registerCommand({
+  id: 'ai.continue_writing',
+  title: 'Continue Writing',
+  icon: 'PenLine',
+  tab: 'ai',
+  description: 'Let the AI continue writing from your cursor.',
+  run: () => alert('AI: Continue Writing'),
+});
+registerCommand({
+  id: 'ai.fix_grammar',
+  title: 'Fix Grammar',
+  icon: 'SpellCheck2',
+  tab: 'ai',
+  description: 'Correct grammar and spelling in the selection.',
+  run: () => alert('AI: Fix Grammar'),
+});
+
 
 // --- VIEW TAB COMMANDS ---
 registerCommand({
@@ -227,13 +327,19 @@ registerCommand({
     }
   },
 });
-
 registerCommand({
-  id: 'view.focus',
-  title: 'Focus Mode',
-  icon: 'Eye',
+  id: 'view.zen_mode',
+  title: 'Zen Mode',
+  icon: 'Bird',
   tab: 'view',
-  run: () => alert('Toggling Focus Mode'),
+  run: () => alert('Toggling Zen Mode'),
+});
+registerCommand({
+  id: 'view.toggle_ruler',
+  title: 'Toggle Ruler',
+  icon: 'Ruler',
+  tab: 'view',
+  run: () => alert('Toggle Ruler'),
 });
 
 
@@ -249,33 +355,34 @@ registerCommand({
 // FUZZY SEARCH LOGIC
 let fuse: Fuse<Command>;
 
-function initializeFuse() {
-    fuse = new Fuse(getAllCommands(), {
-        keys: ["title", "keywords", "tab"],
-        threshold: 0.35,
-        includeScore: true,
-    });
-}
+const initializeFuse = () => {
+  fuse = new Fuse(getAllCommands(), {
+    keys: ["title", "keywords", "tab"],
+    threshold: 0.3,
+    includeScore: true,
+  });
+};
 
-// Initial load
-initializeFuse();
-
-// Re-initialize whenever commands are registered (e.g., by plugins)
+// We need to re-initialize if features are registered dynamically (e.g., by plugins).
 const originalRegister = registerCommand;
-registerCommand = (command: Command) => {
+const reinitializingRegisterCommand = (command: Command) => {
     originalRegister(command);
-    initializeFuse(); // Re-index on change
+    initializeFuse(); // Re-index on every new command registration.
 }
+// Replace the global registerCommand with our enhanced version.
+Object.assign(registerCommand, reinitializingRegisterCommand);
+initializeFuse(); // Initial indexing
+
 
 export function searchCommands(query: string, context: CommandContext): Command[] {
   if (!fuse) initializeFuse();
   
   const allCommands = getAllCommands();
 
+  const availableCommands = allCommands.filter(c => c.canRun ? c.canRun(context) : true);
+
   if (!query.trim()) {
-      return allCommands
-        .filter(c => c.canRun ? c.canRun(context) : true)
-        .slice(0, 20);
+      return availableCommands.slice(0, 20);
   }
 
   return fuse.search(query)
