@@ -16,7 +16,7 @@ import {
   ChevronDown, TextQuote, Pilcrow, Heading3, Heading4, Heading5, Heading6, CaseSensitive
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Textarea } from './ui/textarea';
 import { getFeaturesByTab, type Feature } from '@/engine/features/FeatureRegistry';
@@ -137,7 +137,7 @@ const FontStyleDropdown = ({ editor }: { editor: Editor | null }) => {
                 {fonts.map(font => (
                     <DropdownMenuItem 
                         key={font.value} 
-                        onClick={() => editor.chain().focus().setFontFamily(font.value).run()}
+                        onClick={() => editor.chain().focus().setMark('textStyle', { fontFamily: font.value }).run()}
                         className={currentFont === font.value ? 'bg-accent' : ''}
                     >
                         <span style={{fontFamily: font.value}}>{font.name}</span>
@@ -167,22 +167,12 @@ const TabContentRenderer = ({ tab, editor }: { tab: TabName, editor: Editor | nu
     )
   }
 
-  const defaultGroup = (
-      <div className="flex items-center gap-1">
-          {features.filter(f => !f.group).map(feature => (
-               <ToolbarButton key={feature.id} feature={feature} editor={editor} />
-          ))}
-      </div>
-  );
-
-  const groupedFeatures = features
-    .filter(f => f.group)
-    .reduce((acc, feature) => {
-        const groupName = feature.group || 'default';
-        if (!acc[groupName]) acc[groupName] = [];
-        acc[groupName].push(feature);
-        return acc;
-    }, {} as Record<string, Feature[]>);
+  const groups = features.reduce((acc, feature) => {
+    const groupName = feature.group || 'default';
+    if (!acc[groupName]) acc[groupName] = [];
+    acc[groupName].push(feature);
+    return acc;
+  }, { 'default': [] } as Record<string, Feature[]>);
 
 
   return (
@@ -199,17 +189,19 @@ const TabContentRenderer = ({ tab, editor }: { tab: TabName, editor: Editor | nu
           </>
       )}
 
-      {Object.entries(groupedFeatures).map(([groupName, groupFeatures], index) => (
-        <React.Fragment key={groupName}>
-          {index > 0 && <Separator orientation="vertical" className="h-6 mx-1" />}
-          <div className="flex items-center gap-1">
-            {groupFeatures.map(feature => (
-              <ToolbarButton key={feature.id} feature={feature} editor={editor} />
-            ))}
-          </div>
-        </React.Fragment>
-      ))}
-      {features.some(f => !f.group) && defaultGroup}
+      {Object.entries(groups).map(([groupName, groupFeatures], index) => {
+        if (groupFeatures.length === 0) return null;
+        return (
+            <React.Fragment key={groupName}>
+            {index > 0 && <Separator orientation="vertical" className="h-6 mx-1" />}
+            <div className="flex items-center gap-1">
+                {groupFeatures.map(feature => (
+                <ToolbarButton key={feature.id} feature={feature} editor={editor} />
+                ))}
+            </div>
+            </React.Fragment>
+        )
+      })}
     </div>
   );
 };
