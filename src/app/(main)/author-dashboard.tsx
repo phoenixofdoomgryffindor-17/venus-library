@@ -1,12 +1,11 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import type { Book } from '@/lib/types';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection, query, serverTimestamp, doc, getDocs, setDoc, deleteDoc, where, updateDoc, limit, startAfter, orderBy, DocumentSnapshot } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, setDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   Table,
@@ -54,6 +53,9 @@ import { critiqueBook } from '@/ai/flows/critique-book';
 import EditButton from '@/components/EditButton';
 import { useRouter } from 'next/navigation';
 import { usePaginatedAuthorBooks } from '@/hooks/use-paginated-author-books';
+import { flagInappropriateContent } from '@/ai/flows/flag-inappropriate-content';
+import { generateBookCover } from '@/ai/flows/generate-book-cover';
+import { getCommand } from '@/lib/commands';
 
 const createSlug = (title: string) => {
     if (!title) {
@@ -100,6 +102,7 @@ export default function AuthorDashboard() {
 
     try {
         const bookDocRef = doc(collection(firestore, 'books'));
+        const coverResponse = await generateBookCover({prompt: `A professional, trending book cover for a ${newBookGenre} book titled "${newBookTitle}"`});
         
         const newBookData: Omit<Book, 'id'> = {
             authorId: user.uid,
@@ -107,7 +110,7 @@ export default function AuthorDashboard() {
             slug: newSlug,
             description: '',
             genre: newBookGenre,
-            coverUrl: `https://picsum.photos/seed/${Date.now()}/265/400`,
+            coverUrl: coverResponse.coverDataUri,
             status: 'draft',
             price: 0,
             createdAt: serverTimestamp(),
@@ -120,10 +123,10 @@ export default function AuthorDashboard() {
         });
         
         const chaptersColRef = collection(firestore, `books/${bookDocRef.id}/chapters`);
-        await addDoc(chaptersColRef, {
+        addDocumentNonBlocking(chaptersColRef, {
           title: 'Chapter 1',
           order: 1,
-          content: 'Start writing your first chapter here...',
+          content: '<p>Start writing your first chapter here...</p>',
           wordCount: 6,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -133,8 +136,6 @@ export default function AuthorDashboard() {
         setNewBookGenre('');
         setCreateBookOpen(false);
         toast({ title: "Book Created!", description: `"${newBookTitle}" has been added to your studio.` });
-        // Instead of reloading, we should ideally optimistically update the UI.
-        // For simplicity, a refresh is used here.
         router.refresh();
     } catch(e: any) {
         toast({ title: 'Error creating book', description: e.message, variant: 'destructive' });
@@ -156,6 +157,7 @@ export default function AuthorDashboard() {
       await deleteDoc(bookRef);
       
       toast({ title: "Book Deleted", description: "The book has been removed from your studio and the marketplace." });
+      // This is a simple way to refresh data, optimistic UI would be better.
       router.refresh();
 
     } catch (e: any) {
@@ -165,54 +167,43 @@ export default function AuthorDashboard() {
     }
   };
 
-  const handlePublishBook = async (bookId: string, bookData: Book) => {
+  const handlePublishBook = async (book: Book) => {
     if (!firestore || !user) return;
     
-    const bookRef = doc(firestore, 'books', bookId);
-    updateDocumentNonBlocking(bookRef, {
-        status: 'published',
-        updatedAt: serverTimestamp(),
-    });
+    const chaptersQuery = query(collection(firestore, 'books', book.id, 'chapters'));
+    const chaptersSnapshot = await getDocs(chaptersQuery);
+    const bookContent = chaptersSnapshot.docs
+        .map(doc => doc.data().content)
+        .join('\n\n');
 
-    toast({ title: "Book Published!", description: `"${bookData.title}" is now live in the marketplace.` });
-  }
-  
-  const handleRequestCritique = async (book: Book) => {
-    if (!firestore || !user) return;
-    setCritiqueLoading(book.id);
-    toast({ title: "Requesting AI Critique...", description: "The story doctor is on the way."});
-
-    try {
-        const chaptersQuery = query(collection(firestore, 'books', book.id, 'chapters'));
-        const chaptersSnapshot = await getDocs(chaptersQuery);
-        const bookContent = chaptersSnapshot.docs
-            .map(doc => doc.data().content)
-            .join('\n\n');
-
-        if (!bookContent.trim()) {
-            toast({ title: "Critique Failed", description: "This book has no content to critique.", variant: 'destructive'});
-            setCritiqueLoading(null);
-            return;
-        }
-
-        const result = await critiqueBook({ title: book.title, content: bookContent });
-        
-        await addDocumentNonBlocking(collection(firestore, 'flags'), {
-            title: `AI Critique: ${book.title}`,
-            reason: result.critique,
+    const flagResult = await flagInappropriateContent({ text: book.title + '\n' + bookContent, contentType: 'book' });
+    
+    if (flagResult.isFlagged) {
+        addDocumentNonBlocking(collection(firestore, 'flags'), {
+            title: `Auto-flagged on Publish: ${book.title}`,
+            reason: `AI detected potentially inappropriate content: ${flagResult.reason}`,
             contentId: book.id,
             type: 'book',
             status: 'pending',
             date: serverTimestamp(),
         });
-
-        toast({ title: "AI Critique Ready!", description: `Feedback for "${book.title}" has been generated and is available in the Review/Feedback section.` });
-
-    } catch (error: any) {
-        toast({ title: "AI Critique Failed", description: error.message || 'An unknown error occurred.', variant: 'destructive' });
-    } finally {
-        setCritiqueLoading(null);
+        toast({ title: "Publication Pending Review", description: "Your book has been flagged for review due to potentially inappropriate content. It will be published after verification.", variant: "default" });
+        return;
     }
+    
+    const bookRef = doc(firestore, 'books', book.id);
+    updateDocumentNonBlocking(bookRef, {
+        status: 'published',
+        updatedAt: serverTimestamp(),
+    });
+
+    toast({ title: "Book Published!", description: `"${book.title}" is now live in the marketplace.` });
+    router.refresh();
+  }
+  
+  const handleRequestCritique = async (book: Book) => {
+    const command = getCommand('ai.critique');
+    command?.run({ editor: null, book, activeChapter: {} as any, toggleSidebar: () => {}});
   }
 
   const loading = userLoading || (booksLoading && books.length === 0);
@@ -240,7 +231,7 @@ export default function AuthorDashboard() {
                 <DialogHeader>
                     <DialogTitle>Create a New Book</DialogTitle>
                     <DialogDescription>
-                        Give your new book a title and a genre to get started. You can change this later.
+                        Give your new book a title and a genre to get started. The AI will generate a cover for you.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -295,7 +286,7 @@ export default function AuthorDashboard() {
                     <div className="flex items-center justify-end gap-2">
                         <EditButton bookId={book.id} />
                         {book.status !== 'published' && (
-                            <Button variant="secondary" size="sm" onClick={() => handlePublishBook(book.id, book)}>
+                            <Button variant="secondary" size="sm" onClick={() => handlePublishBook(book)}>
                                 <BookUp /> Publish
                             </Button>
                         )}
@@ -335,6 +326,11 @@ export default function AuthorDashboard() {
             ))}
           </TableBody>
         </Table>
+        {books.length === 0 && !booksLoading && (
+            <div className="text-center p-8 text-muted-foreground">
+                <p>No books yet. Start your authoring journey by creating one!</p>
+            </div>
+        )}
         {hasMore && (
             <div className="p-4 text-center">
                 <Button onClick={loadMore} disabled={loadingMore}>
@@ -354,7 +350,7 @@ export default function AuthorDashboard() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteBook}>
+            <AlertDialogAction onClick={handleDeleteBook} className="bg-destructive hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
