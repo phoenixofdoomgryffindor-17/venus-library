@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { Book } from '@/lib/types';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { collection, serverTimestamp, doc, setDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, setDoc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   Table,
@@ -96,7 +96,7 @@ export default function AuthorDashboard() {
         toast({ title: "Missing Information", description: "Please provide a title and genre.", variant: "destructive" });
         return;
     }
-    toast({ title: "Creating Book..." });
+    toast({ title: "Creating Book & Generating Cover..." });
     
     const newSlug = createSlug(newBookTitle);
 
@@ -203,7 +203,9 @@ export default function AuthorDashboard() {
   
   const handleRequestCritique = async (book: Book) => {
     const command = getCommand('ai.critique');
-    command?.run({ editor: null, book, activeChapter: {} as any, toggleSidebar: () => {}});
+    if (command && command.run) {
+      command.run({ editor: null, book, activeChapter: {} as any, toggleSidebar: () => {}});
+    }
   }
 
   const loading = userLoading || (booksLoading && books.length === 0);
