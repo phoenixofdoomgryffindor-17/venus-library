@@ -3,12 +3,12 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Book, Chapter, Command, CommandContext } from '@/lib/types';
+import type { Book, Chapter, CommandContext } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, ArrowLeft, Undo, Redo, Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -26,8 +26,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import TextStyle from '@tiptap/extension-text-style';
-import { openCommandPalette } from './CmdPalette';
-import { StatusBar } from './StatusBar';
+import { openCommandPalette } from '@/lib/palette-state';
 
 interface StudioShellProps {
   book: Book;
@@ -44,28 +43,22 @@ const createSlug = (title: string) => {
     .trim();
 };
 
-const TopBar = ({ book, onExit, saveStatus, editor }: { book: Book, onExit: () => void, saveStatus: 'saved' | 'saving' | 'unsaved', editor: any }) => {
+const TopBar = ({ book, onExit, saveStatus, editor, onTitleChange }: { book: Book, onExit: () => void, saveStatus: 'saved' | 'saving' | 'unsaved', editor: any, onTitleChange: (newTitle: string) => void }) => {
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [editableTitle, setEditableTitle] = useState(book.title);
-  const firestore = useFirestore();
-  const { toast } = useToast();
-
-  const handleTitleBlur = async () => {
+  
+  const handleTitleBlur = () => {
     setIsTitleEditing(false);
-    if (editableTitle === book.title) return;
-    
-    try {
-        const bookRef = doc(firestore, 'books', book.id);
-        await updateDoc(bookRef, {
-            title: editableTitle,
-            slug: createSlug(editableTitle),
-            updatedAt: serverTimestamp(),
-        });
-        toast({ title: "Book title updated!" });
-    } catch (e: any) {
-        toast({ title: "Error Saving Title", description: e.message, variant: 'destructive' });
+    if (editableTitle.trim() && editableTitle !== book.title) {
+        onTitleChange(editableTitle);
+    } else {
+        setEditableTitle(book.title); // Revert if empty or unchanged
     }
   };
+
+  useEffect(() => {
+    setEditableTitle(book.title);
+  }, [book.title]);
 
   return (
     <header className="flex h-[48px] flex-shrink-0 items-center justify-between border-b border-border bg-card px-4">
@@ -91,7 +84,7 @@ const TopBar = ({ book, onExit, saveStatus, editor }: { book: Book, onExit: () =
                     onClick={() => setIsTitleEditing(true)}
                     className="cursor-pointer rounded-md px-3 py-1 font-semibold hover:bg-accent/20"
                 >
-                    {editableTitle}
+                    {book.title}
                 </div>
               )}
         </div>
@@ -116,11 +109,12 @@ const TopBar = ({ book, onExit, saveStatus, editor }: { book: Book, onExit: () =
   )
 }
 
-export default function StudioShell({ book, initialChapters }: StudioShellProps) {
+export default function StudioShell({ book: initialBook, initialChapters }: StudioShellProps) {
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
   
+  const [book, setBook] = useState<Book>(initialBook);
   const [chapters, setChapters] = useState<Chapter[]>(initialChapters.length > 0 ? initialChapters : [{ id: 'new', bookId: book.id, title: 'Chapter 1', content: '', order: 1, wordCount: 0 }]);
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   
@@ -131,20 +125,40 @@ export default function StudioShell({ book, initialChapters }: StudioShellProps)
 
   const editor = useEditor({
     extensions: [
-        StarterKit.configure({
-          history: true, // Enables undo/redo
-        }),
-        Underline,
-        TextAlign.configure({
-            types: ['heading', 'paragraph'],
-        }),
-        TextStyle,
+      StarterKit.configure({
+        history: true,
+      }),
+      Underline,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      TextStyle,
     ],
     content: activeChapter?.content || '',
     onUpdate: ({ editor }) => {
       setSaveStatus('unsaved');
     },
+    autofocus: 'end',
+    editable: true,
   });
+
+  const handleTitleChange = async (newTitle: string) => {
+    if (!firestore) return;
+
+    const newSlug = createSlug(newTitle);
+    const bookRef = doc(firestore, 'books', book.id);
+    try {
+        await updateDoc(bookRef, {
+            title: newTitle,
+            slug: newSlug,
+            updatedAt: serverTimestamp(),
+        });
+        setBook(prev => ({...prev, title: newTitle, slug: newSlug}));
+        toast({ title: "Book title updated!" });
+    } catch (e: any) {
+        toast({ title: "Error Saving Title", description: e.message, variant: 'destructive' });
+    }
+  }
 
   const { wordCount, charCount } = useMemo(() => {
     if (!editor) return { wordCount: 0, charCount: 0 };
@@ -211,24 +225,48 @@ export default function StudioShell({ book, initialChapters }: StudioShellProps)
     editor,
     book,
     activeChapter,
-    // Add other context as needed
   }), [editor, book, activeChapter]);
+
+  const handlePrevChapter = () => {
+    if (activeChapterIndex > 0) {
+      handleSaveContent();
+      setActiveChapterIndex(prev => prev - 1);
+    }
+  }
+  
+  const handleNextChapter = () => {
+    if (activeChapterIndex < chapters.length - 1) {
+      handleSaveContent();
+      setActiveChapterIndex(prev => prev + 1);
+    }
+  }
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
-      <TopBar book={book} onExit={handleExit} saveStatus={saveStatus} editor={editor} />
+      <TopBar book={book} onExit={handleExit} saveStatus={saveStatus} editor={editor} onTitleChange={handleTitleChange} />
       <Ribbon commandContext={commandContext} />
       
       <main className="flex-1 overflow-y-auto bg-gray-800 p-4">
         <EditorSurface editor={editor} />
       </main>
 
-      <StatusBar
-        wordCount={wordCount}
-        charCount={charCount}
-        pageNumber={activeChapterIndex + 1}
-        totalPages={chapters.length}
-      />
+       <footer className="flex h-[32px] flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 text-xs text-muted-foreground">
+            <div className="flex items-center gap-4">
+                <Button onClick={handlePrevChapter} disabled={activeChapterIndex === 0} variant="ghost" size="sm" className="h-auto p-1">&lt; Prev</Button>
+                <span>Page {activeChapterIndex + 1} of {chapters.length}</span>
+                <Button onClick={handleNextChapter} disabled={activeChapterIndex === chapters.length - 1} variant="ghost" size="sm" className="h-auto p-1">Next &gt;</Button>
+            </div>
+            <div className="flex gap-4">
+                <span>{wordCount} words</span>
+                <span>{charCount} characters</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" className="h-auto py-0.5" onClick={openCommandPalette}>
+                    <Wand2 className="mr-2 h-3 w-3" />
+                    AI Ready
+                </Button>
+            </div>
+        </footer>
 
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
           <AlertDialogContent>
@@ -258,11 +296,3 @@ export default function StudioShell({ book, initialChapters }: StudioShellProps)
     </div>
   );
 }
-
-// Dummy StatusBar component for now
-const DummyStatusBar = () => (
-    <footer className="flex h-[32px] flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 text-xs text-muted-foreground">
-        <div>Page 1 of 1</div>
-        <div>0 words</div>
-    </footer>
-)
