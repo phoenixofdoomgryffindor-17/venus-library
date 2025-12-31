@@ -4,6 +4,7 @@ import { Inter, Playfair_Display, PT_Sans } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { HeaderProvider } from '@/hooks/use-header';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-playfair' });
@@ -23,8 +24,10 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${playfair.variable} ${ptSans.variable}`} suppressHydrationWarning>
       <body>
         <FirebaseClientProvider>
-          {children}
-          <Toaster />
+          <HeaderProvider>
+            {children}
+            <Toaster />
+          </HeaderProvider>
         </FirebaseClientProvider>
       </body>
     </html>

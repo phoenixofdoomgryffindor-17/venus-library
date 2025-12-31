@@ -5,12 +5,16 @@ import { Header } from '@/components/header';
 import MainApp from '@/components/main-app';
 import PageTransition from '@/components/page-transtion';
 import { Loader2 } from 'lucide-react';
+import { useHeader } from '@/hooks/use-header';
+import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactElement;
 }) {
+  const { setMenuOpen } = useHeader();
 
   return (
     <MainApp>
@@ -23,7 +27,18 @@ export default function MainLayout({
             </div>
           }
         >
-          <PageTransition>{children}</PageTransition>
+          <PageTransition>
+            <>
+              {children}
+               <section className="text-center py-16">
+                  <p className="text-muted-foreground mb-4">Looking for something else?</p>
+                  <Button variant="outline" onClick={() => setMenuOpen(true)}>
+                    <Menu className="mr-2" />
+                    Explore Menu
+                  </Button>
+              </section>
+            </>
+            </PageTransition>
         </Suspense>
       </main>
     </MainApp>

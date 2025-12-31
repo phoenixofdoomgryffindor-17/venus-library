@@ -5,7 +5,6 @@ import { useRequireUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { type ReactNode } from 'react';
-import { HeaderProvider } from '@/hooks/use-header';
 
 const AUTH_ROUTES = ['/login', '/signup'];
 
@@ -22,9 +21,7 @@ export default function MainApp({
   }
 
   return (
-    <HeaderProvider>
-      <AuthenticatedApp>{children}</AuthenticatedApp>
-    </HeaderProvider>
+    <AuthenticatedApp>{children}</AuthenticatedApp>
   );
 }
 
