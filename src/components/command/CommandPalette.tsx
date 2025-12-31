@@ -7,6 +7,7 @@ import type { Feature } from '@/engine/features/FeatureRegistry';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import paletteState from './palette-state';
+import { Search } from 'lucide-react';
 
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,10 +21,10 @@ export function CommandPalette() {
   }, []);
   
   useEffect(() => {
-    // This allows Ctrl+K to work globally by listening on the window
+    // This allows the shortcut to work globally by listening on the window
     const handler = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().includes('MAC');
-      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((isMac ? e.metaKey : e.ctrlKey) && e.shiftKey && e.key === '`') {
         e.preventDefault();
         paletteState.toggle();
       }
@@ -47,7 +48,7 @@ export function CommandPalette() {
     setActiveIndex(0);
   }, [searchTerm]);
 
-  const handleAction = (action: () => void) => {
+  const handleAction = (action: (editor?: any) => void) => {
     action();
     paletteState.toggle(); // Close palette after action
   }
@@ -80,7 +81,8 @@ export function CommandPalette() {
         onClick={e => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-border flex items-center gap-2">
+          <Search className="text-muted-foreground" />
           <Input
             autoFocus
             placeholder="Type a command or search..."

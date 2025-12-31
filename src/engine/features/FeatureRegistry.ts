@@ -38,7 +38,45 @@ export function getAllFeatures(): Feature[] {
   return Array.from(features.values());
 }
 
+
 // --- HOME TAB FEATURES ---
+const FONT_SIZES = [
+    { name: 'Paragraph', level: undefined },
+    { name: 'Heading 3', level: 3 },
+    { name: 'Heading 2', level: 2 },
+    { name: 'Heading 1', level: 1 },
+];
+
+registerFeature({
+  id: 'font-down', title: 'Decrease Font Size', icon: 'Pilcrow', tab: 'home', group: 'font',
+  action: (editor) => {
+      if (!editor) return;
+      const currentLevel = FONT_SIZES.findIndex(s => s.level && editor.isActive('heading', { level: s.level }));
+      const newLevelIndex = currentLevel > 0 ? currentLevel - 1 : 0;
+      const newLevel = FONT_SIZES[newLevelIndex].level;
+      if (newLevel) {
+          editor.chain().focus().toggleHeading({ level: newLevel as any }).run();
+      } else {
+          editor.chain().focus().setParagraph().run();
+      }
+  },
+});
+
+registerFeature({
+  id: 'font-up', title: 'Increase Font Size', icon: 'TextQuote', tab: 'home', group: 'font',
+  action: (editor) => {
+      if (!editor) return;
+      let currentLevel = FONT_SIZES.findIndex(s => s.level && editor.isActive('heading', { level: s.level }));
+      if (currentLevel === -1 && editor.isActive('paragraph')) currentLevel = 0;
+      
+      const newLevelIndex = currentLevel < FONT_SIZES.length - 1 ? currentLevel + 1 : FONT_SIZES.length - 1;
+      const newLevel = FONT_SIZES[newLevelIndex].level;
+       if (newLevel) {
+          editor.chain().focus().toggleHeading({ level: newLevel as any }).run();
+      }
+  },
+});
+
 registerFeature({
   id: 'bold', title: 'Bold', icon: 'Bold', shortcut: 'Ctrl+B', tab: 'home', group: 'format',
   action: (editor) => editor?.chain().focus().toggleBold().run(),
@@ -178,12 +216,19 @@ registerFeature({
   action: () => alert('Feature: Toggle Split View'),
 });
 
+// --- PLUGINS TAB FEATURES ---
+registerFeature({
+  id: 'plugins.marketplace', title: 'Plugin Marketplace', icon: 'BookUser', tab: 'plugins',
+  action: () => alert('Open Plugin Marketplace'),
+});
+
+
 // --- CORE (non-tab) FEATURES for COMMAND PALETTE ---
 registerFeature({
     id: 'core.openCommands',
     title: 'Open Command Palette',
     keywords: ['command', 'palette', 'search', 'action'],
-    shortcut: 'Ctrl+K',
+    shortcut: 'Ctrl+Shift+`',
     action: openCommandPalette,
     tab: 'view' // Assign to a tab so it doesn't get lost
 });
