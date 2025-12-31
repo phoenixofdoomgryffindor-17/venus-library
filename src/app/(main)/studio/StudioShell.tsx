@@ -26,6 +26,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import TextStyle from '@tiptap/extension-text-style';
+import CharacterCount from '@tiptap/extension-character-count';
 import { openCommandPalette } from '@/lib/palette-state';
 import { StatusBar } from './StatusBar';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -155,12 +156,15 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        characterCount: false, // Disable StarterKit's character count to use our own instance
+      }),
       Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
       TextStyle,
+      CharacterCount.configure(), // Add the extension here
     ],
     content: activeChapter?.content || '',
     onUpdate: ({ editor }) => {
@@ -189,7 +193,7 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
   }
 
   const { wordCount, charCount } = useMemo(() => {
-    if (!editor?.state.doc) return { wordCount: 0, charCount: 0 };
+    if (!editor?.storage.characterCount) return { wordCount: 0, charCount: 0 };
     return {
       wordCount: editor.storage.characterCount.words(),
       charCount: editor.storage.characterCount.characters(),

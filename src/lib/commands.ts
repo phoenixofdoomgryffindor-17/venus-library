@@ -182,7 +182,7 @@ registerCommand({
   icon: 'Table',
   tab: 'insert',
   group: 'structure',
-  run: () => alert('Feature: Insert Table'),
+  run: ({ editor }) => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
 });
 registerCommand({
   id: 'insert.divider',
@@ -268,7 +268,15 @@ registerCommand({
   icon: 'Scan',
   tab: 'review',
   group: 'stats',
-  run: () => alert('Feature: Word Count'),
+  run: ({ editor }) => alert(`Word Count: ${editor?.storage.characterCount.words()}`),
+});
+registerCommand({
+  id: 'review.char_count',
+  title: 'Character Count',
+  icon: 'Fingerprint',
+  tab: 'review',
+  group: 'stats',
+  run: ({ editor }) => alert(`Character Count: ${editor?.storage.characterCount.characters()}`),
 });
 registerCommand({
   id: 'review.comments_panel',
@@ -312,7 +320,24 @@ registerCommand({
   description: 'Correct grammar and spelling in the selection.',
   run: () => alert('AI: Fix Grammar'),
 });
+registerCommand({
+  id: 'ai.generate.synopsis',
+  title: 'Generate Synopsis',
+  icon: 'FileText',
+  tab: 'ai',
+  description: 'Create a brief synopsis for the current chapter.',
+  run: () => alert('AI: Generate Synopsis'),
+});
 
+
+// --- PLUGINS TAB ---
+registerCommand({
+    id: 'plugins.manage',
+    title: 'Manage Plugins',
+    icon: 'Component',
+    tab: 'plugins',
+    run: () => alert('Opening plugin manager...'),
+})
 
 // --- VIEW TAB COMMANDS ---
 registerCommand({
@@ -320,6 +345,7 @@ registerCommand({
   title: 'Toggle Fullscreen',
   icon: 'Fullscreen',
   tab: 'view',
+  group: 'display',
   run: () => {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
@@ -333,6 +359,7 @@ registerCommand({
   title: 'Zen Mode',
   icon: 'Bird',
   tab: 'view',
+  group: 'display',
   run: () => alert('Toggling Zen Mode'),
 });
 registerCommand({
@@ -340,6 +367,7 @@ registerCommand({
   title: 'Toggle Sidebar',
   icon: 'PanelLeft',
   tab: 'view',
+  group: 'ui',
   run: ({ toggleSidebar }) => toggleSidebar(),
 });
 

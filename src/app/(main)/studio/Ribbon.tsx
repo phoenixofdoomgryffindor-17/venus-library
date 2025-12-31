@@ -154,7 +154,7 @@ export default function Ribbon({ commandContext }: { commandContext: CommandCont
     { name: 'home', icon: getCommandIcon('Home') },
     { name: 'insert', icon: getCommandIcon('SquarePlus') },
     { name: 'layout', icon: getCommandIcon('Layout') },
-    { name: 'review', icon: getCommandIcon('BookOpen') },
+    { name: 'review', icon: getCommandIcon('BookOpenCheck') },
     { name: 'ai', icon: getCommandIcon('Bot') },
     { name: 'plugins', icon: getCommandIcon('BookUser') },
     { name: 'view', icon: getCommandIcon('Maximize') },
