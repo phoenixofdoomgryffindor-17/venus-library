@@ -14,8 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ChevronDown } from 'lucide-react';
-import { ScrollArea, ScrollBar } from '../ui/scroll-area';
-import { Textarea } from '../ui/textarea';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { Wand2 } from 'lucide-react';
 
 type TabName = 'home' | 'insert' | 'layout' | 'review' | 'ai' | 'plugins' | 'view';

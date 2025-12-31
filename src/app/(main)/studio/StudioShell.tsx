@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import type { Book, Chapter, CommandContext } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, ArrowLeft, Undo, Redo, Search } from 'lucide-react';
@@ -156,11 +156,13 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
           content: '<p>Start writing your story here...</p>',
           order: 1,
           wordCount: 6,
+        };
+        const chapterRef = await addDoc(collection(firestore, 'books', initialBook.id, 'chapters'), {
+          ...newChapterData,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        };
-        const chapterRef = await addDoc(collection(firestore, 'books', initialBook.id, 'chapters'), newChapterData);
-        setChapters([{...newChapterData, id: chapterRef.id}]);
+        });
+        setChapters([{...newChapterData, id: chapterRef.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()}]);
       };
       createFirstChapter();
     }
@@ -288,8 +290,8 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
             </div>
             <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" className="h-auto py-0.5" onClick={openCommandPalette}>
-                    <Wand2 className="mr-2 h-3 w-3" />
-                    AI Ready
+                    <Search className="mr-2 h-3 w-3" />
+                    Commands...
                 </Button>
             </div>
         </footer>
@@ -321,5 +323,4 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
       </AlertDialog>
     </div>
   );
-
-    
+}
