@@ -2,13 +2,13 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import type { Book, Chapter, CommandContext } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, ArrowLeft, Undo, Redo, Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, setDoc, addDoc, collection } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -115,7 +115,7 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
   const { toast } = useToast();
   
   const [book, setBook] = useState<Book>(initialBook);
-  const [chapters, setChapters] = useState<Chapter[]>(initialChapters.length > 0 ? initialChapters : [{ id: 'new', bookId: book.id, title: 'Chapter 1', content: '', order: 1, wordCount: 0 }]);
+  const [chapters, setChapters] = useState<Chapter[]>(initialChapters.length > 0 ? initialChapters : []);
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   
   const activeChapter = useMemo(() => chapters[activeChapterIndex], [chapters, activeChapterIndex]);
@@ -126,6 +126,7 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        // Defaults are fine. `doc` node is included by default.
         history: true,
       }),
       Underline,
@@ -133,6 +134,7 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
         types: ['heading', 'paragraph'],
       }),
       TextStyle,
+      // Color extension could be added here if needed
     ],
     content: activeChapter?.content || '',
     onUpdate: ({ editor }) => {
@@ -141,6 +143,29 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
     autofocus: 'end',
     editable: true,
   });
+
+
+  // This effect ensures that if the chapters aren't loaded initially,
+  // we create a default one to avoid an empty editor state.
+  useEffect(() => {
+    if (initialChapters.length === 0 && chapters.length === 0 && firestore) {
+      const createFirstChapter = async () => {
+        const newChapterData: Omit<Chapter, 'id'> = {
+          bookId: initialBook.id,
+          title: 'Chapter 1',
+          content: '<p>Start writing your story here...</p>',
+          order: 1,
+          wordCount: 6,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+        const chapterRef = await addDoc(collection(firestore, 'books', initialBook.id, 'chapters'), newChapterData);
+        setChapters([{...newChapterData, id: chapterRef.id}]);
+      };
+      createFirstChapter();
+    }
+  }, [initialChapters, chapters, firestore, initialBook.id]);
+
 
   const handleTitleChange = async (newTitle: string) => {
     if (!firestore) return;
@@ -211,7 +236,8 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
             setSaveStatus('saved');
         }
     }
-  }, [activeChapter, editor]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChapter]); // Do not add editor here to avoid re-triggering
 
   const handleExit = async () => {
     if (saveStatus === 'unsaved') {
@@ -235,7 +261,7 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
   }
   
   const handleNextChapter = () => {
-    if (activeChapterIndex < chapters.length - 1) {
+    if (chapters && activeChapterIndex < chapters.length - 1) {
       handleSaveContent();
       setActiveChapterIndex(prev => prev + 1);
     }
@@ -253,8 +279,8 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
        <footer className="flex h-[32px] flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-4">
                 <Button onClick={handlePrevChapter} disabled={activeChapterIndex === 0} variant="ghost" size="sm" className="h-auto p-1">&lt; Prev</Button>
-                <span>Page {activeChapterIndex + 1} of {chapters.length}</span>
-                <Button onClick={handleNextChapter} disabled={activeChapterIndex === chapters.length - 1} variant="ghost" size="sm" className="h-auto p-1">Next &gt;</Button>
+                <span>Page {chapters.length > 0 ? activeChapterIndex + 1 : 0} of {chapters.length}</span>
+                <Button onClick={handleNextChapter} disabled={!chapters || activeChapterIndex === chapters.length - 1} variant="ghost" size="sm" className="h-auto p-1">Next &gt;</Button>
             </div>
             <div className="flex gap-4">
                 <span>{wordCount} words</span>
@@ -295,4 +321,5 @@ export default function StudioShell({ book: initialBook, initialChapters }: Stud
       </AlertDialog>
     </div>
   );
-}
+
+    
