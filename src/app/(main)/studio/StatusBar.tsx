@@ -2,7 +2,6 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import { openCommandPalette } from "@/lib/palette-state";
 
 interface StatusBarProps {
     pageNumber: number;
@@ -23,10 +22,6 @@ export function StatusBar({ pageNumber, totalPages, wordCount, charCount }: Stat
                 <span>{charCount} characters</span>
             </div>
              <div className="flex-1 flex justify-end">
-                <Button variant="ghost" size="sm" className="h-auto py-0.5" onClick={openCommandPalette}>
-                    <Search className="mr-2 h-3 w-3" />
-                    Commands...
-                </Button>
             </div>
         </footer>
     );

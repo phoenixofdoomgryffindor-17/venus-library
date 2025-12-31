@@ -4,9 +4,6 @@
 import type { Editor } from '@tiptap/react';
 import type { Command, CommandContext, Book, Chapter } from './types';
 import * as LucideIcons from 'lucide-react';
-import Fuse from "fuse.js";
-import { openCommandPalette } from '@/lib/palette-state';
-
 
 type IconName = keyof typeof LucideIcons;
 
@@ -333,63 +330,3 @@ registerCommand({
   group: 'ui',
   run: ({ toggleSidebar }) => toggleSidebar(),
 });
-
-
-// --- GLOBAL COMMANDS (for Command Palette) ---
-registerCommand({
-  id: 'cmd.open_palette',
-  title: 'Open Command Palette',
-  keywords: ['command', 'palette', 'search', 'action'],
-  shortcut: 'Ctrl+Shift+P',
-  run: openCommandPalette,
-});
-
-// FUZZY SEARCH LOGIC
-let fuse: Fuse<Command>;
-
-const initializeFuse = () => {
-  fuse = new Fuse(getAllCommands(), {
-    keys: ["title", "keywords", "tab"],
-    threshold: 0.3,
-    includeScore: true,
-  });
-};
-
-// We need to re-initialize if features are registered dynamically (e.g., by plugins).
-const originalRegister = registerCommand;
-const reinitializingRegisterCommand = (command: Command) => {
-    originalRegister(command);
-    initializeFuse(); // Re-index on every new command registration.
-}
-// Replace the global registerCommand with our enhanced version.
-Object.assign(registerCommand, reinitializingRegisterCommand);
-initializeFuse(); // Initial indexing
-
-
-export function searchCommands(query: string, context: CommandContext): Command[] {
-  if (!fuse) initializeFuse();
-  
-  // Filter commands based on whether they can be run in the current context
-  const allCommands = getAllCommands();
-  const availableCommands = allCommands.filter(c => {
-    if (c.id === 'cmd.open_palette') return false; // Don't show the open palette command within the palette
-    if (c.canRun) {
-      return c.canRun(context);
-    }
-    // If canRun is not defined, default to requiring an editor for most commands
-    if (c.tab && c.tab !== 'view' && c.tab !== 'plugins') {
-      return !!context.editor;
-    }
-    return true;
-  });
-
-  if (!query.trim()) {
-      return availableCommands.slice(0, 20); // Return a default list
-  }
-  
-  // Update fuse instance with only available commands for searching
-  fuse.setCollection(availableCommands);
-
-  return fuse.search(query)
-    .map(result => result.item)
-}

@@ -5,7 +5,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Book, Chapter, CommandContext } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, ArrowLeft, Undo, Redo, Search } from 'lucide-react';
+import { Loader2, Check, ArrowLeft, Undo, Redo } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
@@ -31,7 +31,6 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
-import { openCommandPalette } from '@/lib/palette-state';
 import { StatusBar } from './StatusBar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -102,9 +101,6 @@ const TopBar = ({ book, onExit, saveStatus, editor, onTitleChange }: { book: Boo
                 {saveStatus === 'unsaved' && <div className="h-2 w-2 rounded-full bg-primary" title="Unsaved changes"/>}
             </div>
             <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={openCommandPalette}>
-                    <Search />
-                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().undo().run()} disabled={!editor?.can().undo()}><Undo/></Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().redo().run()} disabled={!editor?.can().redo()}><Redo/></Button>
             </div>
