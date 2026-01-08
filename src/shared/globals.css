@@ -1,0 +1,22 @@
+body {
+  justify-content: center;
+  animation: bgAnim 15s ease-in-out infinite;
+}
+
+@keyframes bgAnim {
+  0% {
+    background-color: blue;
+  }
+  50% {
+    background-color: purple;
+  }
+  100% {
+    background-color: violet;
+  }
+}
+
+h1 {
+  color: white;
+  font-size: 70px;
+  text-align: center;
+}
